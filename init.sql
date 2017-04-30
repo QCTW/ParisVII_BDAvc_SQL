@@ -1,24 +1,27 @@
 /* création de la base de donnee */
-CREATE DATABASE projet_theatre;;
+CREATE DATABASE IF NOT EXISTS projet_theatre;;
 \connect projet_theatre;;
 
 /* création de la table */
-CREATE TABLE Spectacle (
-	IdSpectacle integer PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS Spectacle (
+	IdSpectacle SERIAL PRIMARY KEY,
 	Nom varchar(20) NOT NULL,
 	Places integer NOT NULL
 		CHECK (places >= 0),
 	Type integer NOT NULL
 		CHECK (Type IN (0,1)),/* 0: cree, 1:achete */
-	TarifNormal numeric(4,2) NOT NULL
+	TarifNormal numeric(6,2) NOT NULL
 		CHECK (TarifNormal >= 0),
-	TarifReduit numeric(4,2) NOT NULL
+	TarifReduit numeric(6,2) NOT NULL
 		CHECK (TarifNormal >= 0)
 );
 
+INSERT INTO Spectacle (Nom, Places, Type, TarifNormal, TarifReduit) VALUES
+('Carmen', 85, 0, 204.45, 144.45);
+
 ----------------------------------------------------
 
-CREATE TABLE Organisme (
+CREATE TABLE IF NOT EXISTS Organisme (
         IdOrganisme integer PRIMARY KEY,
         Nom varchar(20) NOT NULL,
         Type varchar(20)
@@ -26,7 +29,7 @@ CREATE TABLE Organisme (
 
 ----------------------------------------------------
 
-CREATE TABLE Subventions (
+CREATE TABLE IF NOT EXISTS Subventions (
         IdSpectacle integer references Spectacle,
         IdOrganisme integer references Organisme, 
         Action varchar(20) default 'creation' 
@@ -40,7 +43,7 @@ CREATE TABLE Subventions (
 
 ----------------------------------------------------
 
-CREATE TABLE Cout_Spectacle (
+CREATE TABLE IF NOT EXISTS Cout_Spectacle (
         IdCout integer PRIMARY KEY,
         IdSpectacle integer NOT NULL references Spectacle, 
         /* Trigger insert before selon type de spectacle si il a type <achete>, on depense que une seule fois */
@@ -51,7 +54,7 @@ CREATE TABLE Cout_Spectacle (
 
 ----------------------------------------------------
 
-CREATE TABLE Repre_Interne (
+CREATE TABLE IF NOT EXISTS Repre_Interne (
         IdRepresentation integer PRIMARY KEY,
         IdSpectacle integer NOT NULL references Spectacle,
         Date_Sortir date NOT NULL,
