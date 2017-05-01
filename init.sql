@@ -5,20 +5,19 @@ CREATE DATABASE projet_theatre;
 /* création de la table */
 ----------------------------------------------------
 
-CREATE TABLE IF NOT EXISTS Aujourdhui (
-	id SERIAL PRIMARY KEY, 
+CREATE TABLE IF NOT EXISTS Today (
+	id serial PRIMARY KEY, 
 	time timestamp
 );
 
-INSERT INTO Aujourdhui (time) VALUES 
-(to_timestamp('13:30 14/04/2017', 'HH24:MI DD/MM/YYYY')),
-('2017-04-30 13:30');
+INSERT INTO Today VALUES 
+(0, to_timestamp('13:30 14/04/2017', 'HH24:MI DD/MM/YYYY'));
 
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS Spectacle (
-	IdSpectacle SERIAL PRIMARY KEY,
-	Nom varchar(20) NOT NULL,
+	IdSpectacle serial,
+	Nom varchar(256) NOT NULL,
 	Type integer NOT NULL
 		CHECK (Type IN (0,1)),/* 0: cree, 1:achete */
 	Places integer NOT NULL
@@ -26,7 +25,8 @@ CREATE TABLE IF NOT EXISTS Spectacle (
 	TarifNormal numeric(6,2) NOT NULL
 		CHECK (TarifNormal >= 0),
 	TarifReduit numeric(6,2) NOT NULL
-		CHECK (TarifNormal >= 0)
+		CHECK (TarifNormal >= 0),
+	PRIMARY KEY (IdSpectacle)
 );
 
 INSERT INTO Spectacle (Nom, Type, Places, TarifNormal, TarifReduit) VALUES
@@ -37,7 +37,7 @@ INSERT INTO Spectacle (Nom, Type, Places, TarifNormal, TarifReduit) VALUES
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS Organisme (
-        IdOrganisme SERIAL PRIMARY KEY,
+        IdOrganisme serial PRIMARY KEY,
         Nom varchar(20) NOT NULL,
         Type varchar(20)
 );
@@ -52,22 +52,23 @@ CREATE TABLE IF NOT EXISTS Subventions (
         	CHECK (Action IN ('creation','accueil')),
         Montant numeric(8,2) NOT NULL
         	CHECK (Montant > 0),
-        Date_Subvenir date NOT NULL,
+        DateSubvenir date NOT NULL,
         PRIMARY key (IdSpectacle,IdOrganisme)
 );
 
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS Cout_Spectacle (
-        IdCout SERIAL PRIMARY KEY,
+        IdCout serial,
         IdSpectacle integer NOT NULL references Spectacle, 
         /* Trigger insert before selon type de spectacle si il a type <achete>, on depense que une seule fois */
-        Date_Depenser date NOT NULL,
+        DateDepenser date NOT NULL,
         Montant numeric(8,2) NOT NULL
-        	CHECK (Montant > 0)
+        	CHECK (Montant > 0),
+	PRIMARY KEY (IdCout)
 );
 
-INSERT INTO Cout_Spectacle (IdSpectacle, Date_Depenser, Montant) VALUES
+INSERT INTO Cout_Spectacle (IdSpectacle, DateDepenser, Montant) VALUES
 (1, '2014-01-07', 30.01),
 (1, '2014-01-10', 10.50),
 (2, '2015-10-10', 100.10),
@@ -79,14 +80,29 @@ INSERT INTO Cout_Spectacle (IdSpectacle, Date_Depenser, Montant) VALUES
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS Repre_Interne (
-        IdRepresentation SERIAL PRIMARY KEY,
+        IdRepresentation serial PRIMARY KEY,
         IdSpectacle integer NOT NULL references Spectacle,
-        Date_Sortir date NOT NULL,
-        Politique integer NOT NULL
-        	CHECK (Politique >= 0)
+        DateSortir date NOT NULL,
+        Politique integer NOT NULL CHECK (Politique >= 0) /* ??? */
 );
 
+INSERT INTO Repre_Interne VALUES
+(1, 1, '2017-05-01', 1);
+
 ----------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS Billet (
+	IdRepresentation serial references Repre_Interne,
+	NomSpectateur varchar(256) NOT NULL,
+	DateVendu timestamp NOT NULL,
+        TarifType integer NOT NULL,
+	Status integer NOT NULL,
+	PrixEffectif numeric (8,2) NOT NULL,
+	PRIMARY KEY (IdRepresentation, NomSpectateur, DateVendu)
+);
+
+INSERT INTO Billet VALUES
+(1, 'Quincy Hsieh', (SELECT time FROM Today WHERE id=0), 1, 1, 100);
 
 /* 
     pour cle etranger on pense a utiliser 
