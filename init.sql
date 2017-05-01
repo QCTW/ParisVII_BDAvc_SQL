@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS Organisme (
 INSERT INTO Organisme (Nom, Type) VALUES
 ('Mairie de Paris', 'Municipalite'),
 ('Ministere de la culture francais', 'Ministere de la culture'),
-('Yizhe FAN', 'mecenat prive');
+('Yizhe FAN', 'Mecenat prive');
 
 ----------------------------------------------------
 
@@ -74,8 +74,7 @@ CREATE TABLE IF NOT EXISTS Cout_Spectacle (
         IdSpectacle integer NOT NULL references Spectacle, 
         /* Trigger insert before selon type de spectacle si il a type <achete>, on depense que une seule fois */
         DateDepenser date NOT NULL,
-        Montant numeric(8,2) NOT NULL
-        	CHECK (Montant > 0),
+        Montant numeric(8,2) NOT NULL CHECK (Montant > 0),
 	PRIMARY KEY (IdCout)
 );
 
@@ -103,9 +102,9 @@ INSERT INTO Repre_Interne VALUES
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS Billet (
-	IdRepresentation serial references Repre_Interne,
-	NomSpectateur varchar(256) NOT NULL,
-	DateVendu timestamp NOT NULL,
+	IdRepresentation integer references Repre_Interne,
+	NomSpectateur varchar(256),
+	DateVendu timestamp,
         TarifType integer NOT NULL,
 	Status integer NOT NULL,
 	PrixEffectif numeric (8,2) NOT NULL,
