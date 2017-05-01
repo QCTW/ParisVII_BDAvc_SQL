@@ -111,11 +111,10 @@ INSERT INTO Repre_Interne (IdSpectacle, Date_Sortir, Politique) VALUES
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS Billet (
-	IdRepresentation integer references Repre_Interne
-        CHECK (IdRepresentation > 0),
+	IdRepresentation integer references Repre_Interne CHECK (IdRepresentation > 0),
 	NomSpectateur varchar(256),
-	Date_Vendu timestamp,
-    TarifType integer NOT NULL,
+	Date_Vendu timestamp NOT NULL,
+	TarifType integer NOT NULL,
 	Status integer NOT NULL,
 	PrixEffectif numeric (8,2) NOT NULL,
 	PRIMARY KEY (IdRepresentation, NomSpectateur, Date_Vendu)
@@ -123,6 +122,16 @@ CREATE TABLE IF NOT EXISTS Billet (
 
 INSERT INTO Billet ( IdRepresentation, NomSpectateur, Date_Vendu, TarifType, Status, PrixEffectif) VALUES
 (1, 'Quincy Hsieh', (SELECT time FROM Today WHERE id = 1), 1, 1, 100);
+
+----------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS Historique (
+	IdHistorique serial PRIMARY KEY,
+	Type integer NOT NULL, /* 0=Dépense, 1=Recette*/
+	Time timestamp NOT NULL,
+	Montant numeric (8,2) NOT NULL,
+	Note text
+);
 
 /* 
     pour cle etranger on pense a utiliser 
