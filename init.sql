@@ -38,10 +38,10 @@ INSERT INTO Spectacle (Nom, Type, Places, TarifNormal, TarifReduit) VALUES
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS Organisme (
-        IdOrganisme serial,
-        Nom varchar(256) NOT NULL,
-        Type varchar(256),
-        PRIMARY KEY (IdOrganisme)
+    IdOrganisme serial,
+    Nom varchar(256) NOT NULL,
+    Type varchar(256),
+    PRIMARY KEY (IdOrganisme)
 );
 
 INSERT INTO Organisme (Nom, Type) VALUES
@@ -52,15 +52,15 @@ INSERT INTO Organisme (Nom, Type) VALUES
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS Subventions (
-        IdSpectacle integer references Spectacle,
-        IdOrganisme integer references Organisme, 
-        Action varchar(256) default 'creation' 
-        /* Trigger insert before selon type de spectacle de modifier action */
-        	CHECK (Action IN ('creation','accueil')),
-        Montant numeric(8,2) NOT NULL
-        	CHECK (Montant > 0),
-        Date_Subvenir date NOT NULL,
-        PRIMARY key (IdSpectacle,IdOrganisme)
+    IdSpectacle integer references Spectacle,
+    IdOrganisme integer references Organisme, 
+    Action varchar(256) default 'creation' 
+    /* Trigger insert before selon type de spectacle de modifier action */
+    	CHECK (Action IN ('creation','accueil')),
+    Montant numeric(8,2) NOT NULL
+    	CHECK (Montant > 0),
+    Date_Subvenir date NOT NULL,
+    PRIMARY key (IdSpectacle,IdOrganisme)
 );
 
 INSERT INTO Subventions (IdSpectacle, IdOrganisme, Action, Montant, Date_Subvenir) VALUES
@@ -72,40 +72,66 @@ INSERT INTO Subventions (IdSpectacle, IdOrganisme, Action, Montant, Date_Subveni
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS Cout_Spectacle (
-        IdCout serial,
-        IdSpectacle integer NOT NULL references Spectacle, 
-        /* Trigger insert before selon type de spectacle si il a type <achete>, on depense que une seule fois */
-        Date_Depenser date NOT NULL,
-        Montant numeric(8,2) NOT NULL CHECK (Montant > 0),
+    IdCout serial,
+    IdSpectacle integer NOT NULL references Spectacle, 
+    /* Trigger insert before selon type de spectacle si il a type <achete>, on depense que une seule fois */
+    Date_Depenser date NOT NULL,
+    Montant numeric(8,2) NOT NULL CHECK (Montant > 0),
 	PRIMARY KEY (IdCout)
 );
 
 INSERT INTO Cout_Spectacle (IdSpectacle, Date_Depenser, Montant) VALUES
 (1, '2014-01-07', 30.01),
-(1, '2014-01-10', 10.50),
 (2, '2015-10-10', 100.10),
 (2, '2015-10-30', 25.09),
-(2, '2015-12-10', 1.98),
-(2, '2016-01-10', 45),
 (3, '2016-12-23', 1000.10);
 
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS Repre_Interne (
-        IdRepresentation serial,
-        IdSpectacle integer NOT NULL references Spectacle,
-        Date_Sortir date NOT NULL,
-        Politique integer NOT NULL 
-            CHECK (Politique >= 0), /* ??? */
-        PRIMARY KEY (IdRepresentation)
+    IdRepresentation serial,
+    IdSpectacle integer NOT NULL references Spectacle,
+    Date_Sortir date NOT NULL,
+    Politique integer NOT NULL CHECK (Politique >= 0), /* ??? */
+    PRIMARY KEY (IdRepresentation)
 );
 
 INSERT INTO Repre_Interne (IdSpectacle, Date_Sortir, Politique) VALUES
 (1, '2014-12-25', 1),
 (1, '2015-12-30', 2),
-(2, '2016-01-01', 1),
 (2, '2016-02-14', 2),
 (3, '2017-02-14', 3);
+
+----------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS Compagnie_Accueil (
+    IdCompagnie_Accueil serial,
+    Nom varchar(256) NOT NULL,
+    Ville varchar(256) NOT NULL,
+    Departement varchar(256) NOT NULL,
+    Pays varchar(256) NOT NULL,
+    PRIMARY KEY (IdCompagnie_Accueil)
+);
+
+INSERT INTO Compagnie_Accueil (Nom, Ville, Departement, Pays) VALUES
+('La Mer', 'Nice', 'Alpes-Maritimes', 'France');
+
+----------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS Repre_Externe (
+    IdRepre_Externe serial,
+    IdSpectacle integer NOT NULL references Spectacle,
+    IdCompagnie_Accueil integer references Compagnie_Accueil,
+    /* Trigger pour tester que ce spectacle a pas de type de achete */
+    Date_Transac date NOT NULL,
+    Prix numeric (8,2) NOT NULL 
+        CHECK (Prix >= 0),
+    /* Trigger pour donner une promotion si il en achete plusieurs dans un coup  */ 
+    PRIMARY KEY (IdRepre_Externe)
+);
+
+INSERT INTO Repre_Externe (IdSpectacle, IdCompagnie_Accueil, Date_Transac, Prix) VALUES
+(1, 1, '2015-01-05', 700.34);
 
 
 ----------------------------------------------------

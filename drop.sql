@@ -1,7 +1,9 @@
 DROP TABLE Today;
-DROP TABLE Subventions CASCADE;
-DROP TABLE Organisme CASCADE;
-DROP TABLE Cout_Spectacle CASCADE;
-DROP TABLE Billet CASCADE;
-DROP TABLE Repre_Interne CASCADE;
-DROP TABLE Spectacle CASCADE;
+DROP TABLE Subventions;
+DROP TABLE Organisme;
+DROP TABLE Cout_Spectacle;
+DROP TABLE Billet;
+DROP TABLE Repre_Interne;
+DROP TABLE Repre_Externe;
+DROP TABLE Compagnie_Accueil;
+DROP TABLE Spectacle;
