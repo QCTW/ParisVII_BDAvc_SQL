@@ -141,7 +141,7 @@ CREATE TABLE IF NOT EXISTS Billet (
 
 INSERT INTO Billet VALUES
 (1, 'Quincy HSIEH', to_timestamp('14:03 13/04/2017', 'HH24:MI DD/MM/YYYY'), 1, 1, 10);
-UPDATE Billet SET prix_effectif = 8 WHERE id_repre = 1 AND nom_spectateur = 'Quincy HSIEH' AND date_vendu = (SELECT time FROM Today WHERE id = 0);
+UPDATE Billet SET prix_effectif = 8 WHERE id_repre = 1 AND nom_spectateur = 'Quincy HSIEH' AND date_vendu = to_timestamp('14:03 13/04/2017', 'HH24:MI DD/MM/YYYY');
 
 ----------------------------------------------------
 
