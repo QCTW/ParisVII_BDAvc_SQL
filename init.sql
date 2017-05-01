@@ -38,16 +38,21 @@ INSERT INTO Spectacle (Nom, Type, Places, TarifNormal, TarifReduit) VALUES
 
 CREATE TABLE IF NOT EXISTS Organisme (
         IdOrganisme serial PRIMARY KEY,
-        Nom varchar(20) NOT NULL,
-        Type varchar(20)
+        Nom varchar(256) NOT NULL,
+        Type varchar(256)
 );
+
+INSERT INTO Organisme (Nom, Type) VALUES
+('Mairie de Paris', 'Municipalite'),
+('Ministere de la culture francais', 'Ministere de la culture'),
+('Yizhe FAN', 'mecenat prive');
 
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS Subventions (
         IdSpectacle integer references Spectacle,
         IdOrganisme integer references Organisme, 
-        Action varchar(20) default 'creation' 
+        Action varchar(256) default 'creation' 
         /* Trigger insert before selon type de spectacle de modifier action */
         	CHECK (Action IN ('creation','accueil')),
         Montant numeric(8,2) NOT NULL
@@ -55,6 +60,12 @@ CREATE TABLE IF NOT EXISTS Subventions (
         DateSubvenir date NOT NULL,
         PRIMARY key (IdSpectacle,IdOrganisme)
 );
+
+INSERT INTO Subventions (IdSpectacle, IdOrganisme, Action, Montant, DateSubvenir) VALUES
+(1, 1, 'creation', 220.45, '2014-10-11'),
+(1, 2, 'creation', 120.01, '2016-01-01'),
+(2, 2, 'creation', 80, '2016-06-01'),
+(3, 3, 'accueil', 100, '2017-01-01');
 
 ----------------------------------------------------
 
