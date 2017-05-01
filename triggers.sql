@@ -46,7 +46,7 @@ BEGIN
 
 		if (TG_OP = 'UPDATE') then
 			INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-			(old.id_spectacle, 0, old.date_depenser, -1*old.montant, 'Enlever ancien cout');
+			(old.id_spectacle, 0, old.date_depenser, -old.montant, 'Enlever ancien cout');
 
 			INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
 			(new.id_spectacle, 0, new.date_depenser, new.montant, 'Ajouter nouveau cout');
@@ -54,7 +54,7 @@ BEGIN
 
 		if (TG_OP = 'DELETE') then
 			INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-			(old.id_spectacle, 0, old.date_depenser, -1*old.montant, 'Enlever ancien cout');
+			(old.id_spectacle, 0, old.date_depenser, -old.montant, 'Enlever ancien cout');
 		end if;
 	end if;
 	return new;
