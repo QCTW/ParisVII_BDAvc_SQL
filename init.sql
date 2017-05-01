@@ -1,4 +1,6 @@
 /* création de la base de donnee */
+----------------------------------------------------
+
 CREATE DATABASE projet_theatre;
 \connect projet_theatre;
 
@@ -78,7 +80,7 @@ CREATE TABLE IF NOT EXISTS Cout_Spectacle (
 INSERT INTO Cout_Spectacle (id_spectacle, date_depenser, montant) VALUES
 (1, '2015-01-07', 500.01),
 (2, '2015-10-10', 1000.10),
-(3, '2016-05-15', 2500.09),
+(2, '2016-05-15', 1500.09),
 (3, '2017-05-15', 3000.10);
 
 ----------------------------------------------------
