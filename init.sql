@@ -134,16 +134,17 @@ INSERT INTO Repre_Externe (id_spectacle, id_compagnie_accueil, date_transac, pri
 CREATE TABLE IF NOT EXISTS Billet (
 	id_repre integer references Repre_Interne CHECK (id_repre > 0),
 	nom_spectateur varchar(256),
+	email varchar(256),
 	date_vendu timestamp NOT NULL,
-	tarif_type integer NOT NULL,
-	status integer NOT NULL, --TOOD
+	tarif_type integer NOT NULL, /* 0=Normal, 1=Reduit*/
+	status integer NOT NULL, /* 0=Reserve, 1=Paye*/
 	prix_effectif numeric (8,2) NOT NULL,
-	PRIMARY KEY (id_repre, nom_spectateur, date_vendu)
+	PRIMARY KEY (id_repre, email)
 );
 
 INSERT INTO Billet VALUES
-(1, 'Quincy HSIEH', to_timestamp('14:03 13/04/2017', 'HH24:MI DD/MM/YYYY'), 1, 1, 10);
-UPDATE Billet SET prix_effectif = 8 WHERE id_repre = 1 AND nom_spectateur = 'Quincy HSIEH' AND date_vendu = to_timestamp('14:03 13/04/2017', 'HH24:MI DD/MM/YYYY');
+(1, 'Quincy HSIEH', 'quincy.tw@gmail.com',to_timestamp('14:03 13/04/2017', 'HH24:MI DD/MM/YYYY'), 1, 1, 10);
+UPDATE Billet SET prix_effectif = 8 WHERE id_repre = 1 AND email = 'quincy.tw@gmail.com';
 
 ----------------------------------------------------
 
