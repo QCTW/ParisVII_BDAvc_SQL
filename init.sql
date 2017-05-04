@@ -52,7 +52,7 @@ INSERT INTO Organisme (nom, type) VALUES
 CREATE TABLE IF NOT EXISTS Subventions (
     id_spectacle integer references Spectacle,
     id_organisme integer references Organisme, 
-    action varchar(256) default 'creation' 
+    action varchar(256)
     /* Trigger insert before selon type de spectacle de modifier action */
     	CHECK (action IN ('creation','accueil')),
     montant numeric(8,2) NOT NULL CHECK (montant > 0),
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS Subventions (
     PRIMARY key (id_spectacle,id_organisme)
 );
 
-INSERT INTO Subventions VALUES
+INSERT INTO Subventions (id_spectacle, id_organisme, action, montant, date_subvenir) VALUES
 (1, 1, 'creation', 220.45, '2014-10-11'),
 (1, 2, 'creation', 120.01, '2016-01-01'),
 (2, 2, 'creation', 80, '2016-06-01'),
