@@ -7,28 +7,45 @@ CREATE OR REPLACE FUNCTION check_cout_achete() RETURNS TRIGGER AS $$
 DECLARE
 	ligne cout_spectacle%ROWTYPE;
 BEGIN
-	--check whether the type of the spectacle is 'achete'. if not, don't need to check.
-	if ((select type from Spectacle where id_spectacle = new.id_spectacle) = 0) then return new;
+	if(TG_OP = 'INSERT') then
+		--check whether the type of the spectacle is 'achete'.
+		if ((select type from Spectacle where id_spectacle = new.id_spectacle) = 1) then 
+		--check whether the cost of the spectacle for buying is exist. if not, continue inserting. 
+			select * into ligne from Cout_Spectacle where id_spectacle = new.id_spectacle;
+			if found then
+			--the cost for buying this spectacle is payed, we can not pay it twice.
+			raise notice 'on peut que acheter un spectacle une seul fois';
+			return null;
+			end if;
+		end if;
 	end if;
 
-	--check whether the cost of the spectacle for buying is exist. if not, continue inserting. 
-	select * into ligne from Cout_Spectacle where id_spectacle = new.id_spectacle;
-	if not found then return new;
+	if(TG_OP = 'UPDATE') then
+		--if the id_spectacle change, check whether the new.id_spectacle has type achete and has existing cost.
+		if (new.id_spectacle <> old.id_spectacle) then
+			if ((select type from Spectacle where id_spectacle = new.id_spectacle) = 1) then 
+			--check whether the cost of the spectacle for buying is exist. if not, continue inserting. 
+				select * into ligne from Cout_Spectacle where id_spectacle = new.id_spectacle;
+				if found then 
+				--the cost for buying this spectacle is payed, we can not pay it twice.
+				raise notice 'on peut que acheter un spectacle une seul fois';
+				return null;
+				end if;
+			end if;
+		end if;
 	end if;
-
-	--the cost for buying this spectacle is payed, we can not pay it twice.
-	raise notice 'on peut que acheter un spectacle une seul fois';
-	return null;
+	return new;
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER cout_achete_checker
-BEFORE INSERT ON Cout_Spectacle
+BEFORE INSERT OR UPDATE ON Cout_Spectacle
 FOR EACH ROW
 EXECUTE PROCEDURE check_cout_achete();
 
 INSERT INTO Cout_Spectacle (id_spectacle, date_depenser, montant) VALUES
 (3, '2015-01-10', 500.01);
+UPDATE cout_spectacle set id_spectacle = 3 where id_cout = 2;
 
 -------------------------------------------------------------
 
@@ -41,8 +58,11 @@ BEGIN
 	end if;
 
 	if (TG_OP = 'UPDATE') then
+		--why we do in this way, for the case that we change id_spectacle.
 		INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-		(new.id_spectacle, 0, new.date_depenser, new.montant-old.montant, 'Modifier ancien cout');
+		(old.id_spectacle, 0, new.date_depenser, -old.montant, 'Modifier-enlever ancien cout');
+		INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
+		(new.id_spectacle, 0, new.date_depenser, new.montant, 'Modifier-ajouter nouveau cout');
 
 	end if;
 
@@ -64,6 +84,7 @@ INSERT INTO Cout_Spectacle (id_spectacle, date_depenser, montant) VALUES
 (2, '2015-12-23', 300.01);
 UPDATE Cout_Spectacle set montant = 140.01 where id_cout = 6;
 DELETE from Cout_Spectacle where id_cout = 6;
+UPDATE cout_spectacle set montant = 2000 where id_cout = 4;
 
 --if insert is failed, the serial number could not rollback. 
 --so after one insert is failed in line 29-30, the serial number will be 6 not be 5.
@@ -151,16 +172,16 @@ BEGIN
 	return null;
 	end if;
 
+	--if buy over 10, we give them a discout. we can define more rules.
 	if(new.numbre_achete >= 10) then new.prix = new.prix * 0.8;
 	return new;
 	end if;
 
-	return null;
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER type_checker_prix_modifier
-BEFORE INSERT ON Repre_Externe
+BEFORE INSERT OR UPDATE ON Repre_Externe
 FOR EACH ROW
 EXECUTE PROCEDURE check_type_modify_prix();
 
@@ -172,34 +193,34 @@ INSERT INTO Repre_Externe (id_spectacle, id_compagnie_accueil, date_transac, pri
 
 -------------------------------------------------------------
 
-/*CREATE OR REPLACE FUNCTION modify_subvenir_historique() RETURNS TRIGGER AS $$
+/*CREATE OR REPLACE FUNCTION modify_repre_externe_historique() RETURNS TRIGGER AS $$
 BEGIN
 
 	if (TG_OP = 'INSERT') then
 		INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-		(new.id_spectacle, 1, new.date_subvenir, new.montant, 'Ajouter nouveau subventions');
+		(new.id_spectacle, 1, new.date_transac, new.prix * new.numbre_achete, 'Ajouter nouveau vente');
 	end if;
 
 	if (TG_OP = 'UPDATE') then
 		INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-		(new.id_spectacle, 1, new.date_subvenir, new.montant-old.montant, 'Modifier ancien subventions');
+		(new.id_spectacle, 1, new.date_subvenir, new.prix * new.numbre_achete - old.prix * old.numbre_achete, 'Modifier ancien vente');
 	end if;
 
 	if (TG_OP = 'DELETE') then
 		INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-		(old.id_spectacle, 1, old.date_subvenir, -old.montant, 'Enlever ancien subventions');
+		(old.id_spectacle, 1, old.date_subvenir, -old.prix * old.numbre_achete, 'Enlever ancien vente');
 	end if;
 
 	return new;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER historique_subvenir_modifier
+CREATE TRIGGER historique_repre_externe_modifier
 AFTER INSERT OR UPDATE OR DELETE ON Subventions 
 FOR EACH ROW
-EXECUTE PROCEDURE modify_subvenir_historique();
+EXECUTE PROCEDURE modify_repre_externe_historique();
 
-INSERT INTO Subventions (id_spectacle, id_organisme, action, montant, date_subvenir) VALUES
-(2, 3, '', 30.54, '2016-12-23');
-UPDATE Subventions set montant = 60.42 where id_spectacle = 2 and id_organisme = 3;
-DELETE from Subventions where id_spectacle = 2 and id_organisme = 3;*/
+INSERT INTO Repre_Externe (id_spectacle, id_compagnie_accueil, date_transac, prix, numbre_achete) VALUES
+(2, 1, '2015-01-05', 300, 10);
+UPDATE Repre_Externe set prix = 500 where id_repre_ext = 4;
+DELETE from Repre_Externe where id_repre_ext = 4;*/
