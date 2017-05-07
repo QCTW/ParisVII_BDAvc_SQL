@@ -97,7 +97,7 @@ DELETE from Cout_Spectacle where id_cout = 6;
 --so after one insert is failed in line 29-30, the serial number will be 6 not be 5.
 -------------------------------------------------------------
 
---pour la table subventions--
+--pour la table subvention--
 -------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION check_subvenir_action() RETURNS TRIGGER AS $$
@@ -120,11 +120,11 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER subvenir_action_checker
-BEFORE INSERT OR UPDATE ON Subventions
+BEFORE INSERT OR UPDATE ON Subvention
 FOR EACH ROW
 EXECUTE PROCEDURE check_subvenir_action();
 
-INSERT INTO Subventions (id_spectacle, id_organisme, action, montant, date_subvenir) VALUES
+INSERT INTO Subvention (id_spectacle, id_organisme, action, montant, date_subvenir) VALUES
 (1, 3, '', 220.45, '2014-10-11'),
 (2, 1, 'accueil', 100, '2016-01-11');
 
@@ -135,27 +135,27 @@ BEGIN
 
 	if (TG_OP = 'INSERT') then
 		INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-		(new.id_spectacle, 1, new.date_subvenir, new.montant, 'Ajouter nouveau subventions');
+		(new.id_spectacle, 1, new.date_subvenir, new.montant, 'Ajouter nouveau subvention');
 	end if;
 
 	if (TG_OP = 'UPDATE') then
 		--for the case that we change id_spectacle.
 		if(new.id_spectacle<>old.id_spectacle) then
 			INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-			(old.id_spectacle, 1, new.date_subvenir, -old.montant, 'Modifier-enlever ancien subventions');
+			(old.id_spectacle, 1, new.date_subvenir, -old.montant, 'Modifier-enlever ancien subvention');
 			INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-			(new.id_spectacle, 1, new.date_subvenir, new.montant, 'Modifier-ajouter nouveau subventions');
+			(new.id_spectacle, 1, new.date_subvenir, new.montant, 'Modifier-ajouter nouveau subvention');
 		end if;
 
 		if(new.id_spectacle = old.id_spectacle) then
 			INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-			(new.id_spectacle, 1, new.date_subvenir, new.montant-old.montant, 'Modifier ancien subventions');
+			(new.id_spectacle, 1, new.date_subvenir, new.montant-old.montant, 'Modifier ancien subvention');
 		end if;
 	end if;
 
 	if (TG_OP = 'DELETE') then
 		INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-		(old.id_spectacle, 1, old.date_subvenir, -old.montant, 'Enlever ancien subventions');
+		(old.id_spectacle, 1, old.date_subvenir, -old.montant, 'Enlever ancien subvention');
 	end if;
 
 	return new;
@@ -163,16 +163,16 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER historique_subvenir_modifier
-AFTER INSERT OR UPDATE OR DELETE ON Subventions 
+AFTER INSERT OR UPDATE OR DELETE ON Subvention 
 FOR EACH ROW
 EXECUTE PROCEDURE modify_subvenir_historique();
 
-INSERT INTO Subventions (id_spectacle, id_organisme, action, montant, date_subvenir) VALUES
+INSERT INTO Subvention (id_spectacle, id_organisme, action, montant, date_subvenir) VALUES
 (2, 3, '', 30.54, '2016-12-23');
-UPDATE Subventions set montant = 60.42 where id_spectacle = 2 and id_organisme = 3;
-UPDATE Subventions set id_spectacle = 3, id_organisme = 1 where id_spectacle = 2 and id_organisme = 1;
-UPDATE Subventions set id_organisme = 2 where id_spectacle = 3 and id_organisme = 1;
-DELETE from Subventions where id_spectacle = 2 and id_organisme = 3;
+UPDATE Subvention set montant = 60.42 where id_spectacle = 2 and id_organisme = 3;
+UPDATE Subvention set id_spectacle = 3, id_organisme = 1 where id_spectacle = 2 and id_organisme = 1;
+UPDATE Subvention set id_organisme = 2 where id_spectacle = 3 and id_organisme = 1;
+DELETE from Subvention where id_spectacle = 2 and id_organisme = 3;
 
 -------------------------------------------------------------
 

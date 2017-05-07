@@ -1,8 +1,9 @@
 DROP TABLE Today;
-DROP TABLE Subventions;
+DROP TABLE Subvention;
 DROP TABLE Organisme;
 DROP TABLE Cout_Spectacle;
 DROP TABLE Billet;
+DROP TABLE Reservation;
 DROP TABLE Repre_Interne;
 DROP TABLE Repre_Externe;
 DROP TABLE Compagnie_Accueil;

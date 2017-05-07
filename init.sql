@@ -21,7 +21,7 @@ INSERT INTO Today ( id, time ) VALUES
 CREATE TABLE IF NOT EXISTS Spectacle (
 	id_spectacle serial,
 	nom varchar(256) NOT NULL,
-	type integer NOT NULL CHECK (Type IN (0,1)),/* 0: cree, 1:achete */
+	type integer NOT NULL CHECK (type IN (0,1)),/* 0: cree, 1:achete */
 	places integer NOT NULL CHECK (places >= 0),
 	tarif_normal numeric(6,2) NOT NULL CHECK (tarif_normal >= 0),
 	tarif_reduit numeric(6,2) NOT NULL CHECK (tarif_reduit >= 0),
@@ -49,7 +49,7 @@ INSERT INTO Organisme (nom, type) VALUES
 
 ----------------------------------------------------
 
-CREATE TABLE IF NOT EXISTS Subventions (
+CREATE TABLE IF NOT EXISTS Subvention (
     id_spectacle integer references Spectacle,
     id_organisme integer references Organisme, 
     action varchar(256)
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS Subventions (
     PRIMARY key (id_spectacle,id_organisme)
 );
 
-INSERT INTO Subventions (id_spectacle, id_organisme, action, montant, date_subvenir) VALUES
+INSERT INTO Subvention (id_spectacle, id_organisme, action, montant, date_subvenir) VALUES
 (1, 1, 'creation', 220.45, '2014-10-11'),
 (1, 2, 'creation', 120.01, '2016-01-01'),
 (2, 2, 'creation', 80, '2016-06-01'),
@@ -123,7 +123,7 @@ CREATE TABLE IF NOT EXISTS Repre_Interne (
     id_spectacle integer NOT NULL references Spectacle,
     date_prevendre date NOT NULL,
     date_sortir date NOT NULL,
-    politique integer NOT NULL CHECK (politique >= 0), /* ??? */
+    politique integer NOT NULL CHECK (politique >= 0),
     CHECK (date_sortir > date_prevendre),
     PRIMARY KEY (id_repre)
 );
@@ -133,32 +133,51 @@ INSERT INTO Repre_Interne (id_spectacle, date_prevendre, date_sortir, politique)
 (1, '2016-12-10','2016-12-30', 2),
 (3, '2017-02-09','2017-02-14', 3);
 
-/*INSERT INTO Repre_Interne (id_spectacle, date_prevendre, date_sortir, politique) VALUES
-(2, '2016-02-20','2016-02-14', 2);*/
+/*
+    INSERT INTO Repre_Interne (id_spectacle, date_prevendre, date_sortir, politique) VALUES
+    (2, '2016-02-20','2016-02-14', 2);
+*/
+
+----------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS Reservation (
+    id_reserve serial PRIMARY KEY,
+    id_repre integer NOT NULL references Repre_Interne,
+    date_reserver date NOT NULL,
+    date_regler date NOT NULL,
+    CHECK (date_reserver < date_regler),
+    /* 
+        triggers check date_reserver > date_prevendre
+        triggers check date_regler < date_sortir
+    */
+    places_reserve integer NOT NULL CHECK (places_reserve > 0)
+    /* triggers there is enough places */
+    --inner join select for getting information of spectacle.
+);
+
+INSERT INTO Reservation (id_repre, date_reserver, date_regler, places_reserve) VALUES
+(1, '2015-12-10', '2015-12-20', 10);
 
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS Billet (
-	id_repre integer references Repre_Interne CHECK (id_repre > 0),
-	nom_spectateur varchar(256),
-	email varchar(256),
-	date_vendu timestamp NOT NULL,
-	tarif_type integer NOT NULL, /* 0=Normal, 1=Reduit*/
-	status integer NOT NULL, /* 0=Reserve, 1=Paye*/
-	prix_effectif numeric (8,2) NOT NULL,
-	PRIMARY KEY (id_repre, email)
+	id_repre integer references Repre_Interne,
+	tarif_type integer CHECK (tarif_type IN (0,1)), /* 0=Normal, 1=Reduit*/
+    par_politique integer CHECK (par_politique >=0),
+    prix_effectif numeric (8,2),
+    numbre integer NOT NULL CHECK (numbre >=0),
+	PRIMARY KEY (id_repre, tarif_type, prix_effectif, par_politique)
 );
 
-INSERT INTO Billet VALUES
-(1, 'Quincy HSIEH', 'quincy.tw@gmail.com',to_timestamp('14:03 13/04/2017', 'HH24:MI DD/MM/YYYY'), 1, 1, 10);
-UPDATE Billet SET prix_effectif = 8 WHERE id_repre = 1 AND email = 'quincy.tw@gmail.com';
+INSERT INTO Billet (id_repre, tarif_type, par_politique, prix_effectif, numbre) VALUES
+(1, 0, 0, 204.45, 5);
 
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS Historique (
 	id_historique serial PRIMARY KEY,
 	id_spectacle integer NOT NULL references Spectacle,
-	type integer NOT NULL, /* 0=Dépense, 1=Recette*/
+	type integer NOT NULL CHECK (type IN (0,1)), /* 0=Dépense, 1=Recette*/
 	time timestamp NOT NULL,
 	montant numeric (8,2) NOT NULL,
 	note text
