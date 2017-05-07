@@ -121,14 +121,16 @@ CREATE TABLE IF NOT EXISTS Repre_Externe (
     id_compagnie_accueil integer NOT NULL references Compagnie_Accueil,
     /* Trigger pour tester que ce spectacle a pas de type de achete */
     date_transac date NOT NULL,
-    prix numeric (8,2) NOT NULL CHECK (prix >= 0),
+    prix numeric (8,2) NOT NULL CHECK (prix > 0),
     /* Trigger pour donner une promotion si il en achete plusieurs dans un coup  */
     numbre_achete integer NOT NULL CHECK (numbre_achete > 0), 
+    prix_vendu numeric (8,2) CHECK (prix > 0),
+    /* final prix */
     PRIMARY KEY (id_repre_ext)
 );
 
-INSERT INTO Repre_Externe (id_spectacle, id_compagnie_accueil, date_transac, prix, numbre_achete) VALUES
-(1, 1, '2015-01-05', 700.34, 1);
+INSERT INTO Repre_Externe (id_spectacle, id_compagnie_accueil, date_transac, prix, numbre_achete, prix_vendu) VALUES
+(1, 1, '2015-01-05', 700.34, 1, 700.34);
 
 ----------------------------------------------------
 
