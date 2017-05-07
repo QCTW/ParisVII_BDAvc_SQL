@@ -85,22 +85,6 @@ INSERT INTO Cout_Spectacle (id_spectacle, date_depenser, montant) VALUES
 
 ----------------------------------------------------
 
-CREATE TABLE IF NOT EXISTS Repre_Interne (
-    id_repre serial,
-    id_spectacle integer NOT NULL references Spectacle,
-    date_sortir date NOT NULL,
-    politique integer NOT NULL CHECK (politique >= 0), /* ??? */
-    PRIMARY KEY (id_repre)
-);
-
-INSERT INTO Repre_Interne (id_spectacle, date_sortir, politique) VALUES
-(1, '2015-12-25', 1),
-(1, '2016-12-30', 2),
-(2, '2016-02-14', 2),
-(3, '2017-02-14', 3);
-
-----------------------------------------------------
-
 CREATE TABLE IF NOT EXISTS Compagnie_Accueil (
     id_compagnie_accueil serial,
     nom varchar(256) NOT NULL,
@@ -131,6 +115,26 @@ CREATE TABLE IF NOT EXISTS Repre_Externe (
 
 INSERT INTO Repre_Externe (id_spectacle, id_compagnie_accueil, date_transac, prix, numbre_achete, prix_vendu) VALUES
 (1, 1, '2015-01-05', 700.34, 1, 700.34);
+
+----------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS Repre_Interne (
+    id_repre serial,
+    id_spectacle integer NOT NULL references Spectacle,
+    date_prevendre date NOT NULL,
+    date_sortir date NOT NULL,
+    politique integer NOT NULL CHECK (politique >= 0), /* ??? */
+    CHECK (date_sortir > date_prevendre),
+    PRIMARY KEY (id_repre)
+);
+
+INSERT INTO Repre_Interne (id_spectacle, date_prevendre, date_sortir, politique) VALUES
+(1, '2015-12-10','2015-12-25', 1),
+(1, '2016-12-10','2016-12-30', 2),
+(3, '2017-02-09','2017-02-14', 3);
+
+/*INSERT INTO Repre_Interne (id_spectacle, date_prevendre, date_sortir, politique) VALUES
+(2, '2016-02-20','2016-02-14', 2);*/
 
 ----------------------------------------------------
 
