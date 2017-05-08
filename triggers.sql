@@ -5,36 +5,36 @@
 
 CREATE OR REPLACE FUNCTION check_cout_achete() RETURNS TRIGGER AS $$
 DECLARE
-	ligne cout_spectacle%ROWTYPE;
+  ligne cout_spectacle%ROWTYPE;
 BEGIN
-	if(TG_OP = 'INSERT') then
-		--check whether the type of the spectacle is 'achete'.
-		if ((select type from Spectacle where id_spectacle = new.id_spectacle) = 1) then 
-		--check whether the cost of the spectacle for buying is exist. if not, continue inserting. 
-			select * into ligne from Cout_Spectacle where id_spectacle = new.id_spectacle;
-			if found then
-			--the cost for buying this spectacle is payed, we can not pay it twice.
-			raise notice 'on peut que acheter un spectacle une seul fois';
-			return null;
-			end if;
-		end if;
-	end if;
+  if(TG_OP = 'INSERT') then
+    --check whether the type of the spectacle is 'achete'.
+    if ((select type from Spectacle where id_spectacle = new.id_spectacle) = 1) then 
+    --check whether the cost of the spectacle for buying is exist. if not, continue inserting. 
+      select * into ligne from Cout_Spectacle where id_spectacle = new.id_spectacle;
+      if found then
+      --the cost for buying this spectacle is payed, we can not pay it twice.
+      raise notice 'Vous pouvez acheter un spectacle une seul fois';
+      return null;
+      end if;
+    end if;
+  end if;
 
-	if(TG_OP = 'UPDATE') then
-		--if the id_spectacle change, check whether the new.id_spectacle has type achete and has existing cost.
-		if (new.id_spectacle <> old.id_spectacle) then
-			if ((select type from Spectacle where id_spectacle = new.id_spectacle) = 1) then 
-			--check whether the cost of the spectacle for buying is exist. if not, continue inserting. 
-				select * into ligne from Cout_Spectacle where id_spectacle = new.id_spectacle;
-				if found then 
-				--the cost for buying this spectacle is payed, we can not pay it twice.
-				raise notice 'on peut que acheter un spectacle une seul fois';
-				return null;
-				end if;
-			end if;
-		end if;
-	end if;
-	return new;
+  if(TG_OP = 'UPDATE') then
+    --if the id_spectacle change, check whether the new.id_spectacle has type achete and has existing cost.
+    if (new.id_spectacle <> old.id_spectacle) then
+      if ((select type from Spectacle where id_spectacle = new.id_spectacle) = 1) then 
+      --check whether the cost of the spectacle for buying is exist. if not, continue inserting. 
+        select * into ligne from Cout_Spectacle where id_spectacle = new.id_spectacle;
+        if found then 
+        --the cost for buying this spectacle is payed, we can not pay it twice.
+        raise notice 'Vouz pouvez acheter un spectacle une seul fois';
+        return null;
+        end if;
+      end if;
+    end if;
+  end if;
+  return new;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -51,34 +51,30 @@ UPDATE cout_spectacle set id_spectacle = 3 where id_cout = 2;
 
 CREATE OR REPLACE FUNCTION modify_cout_historique() RETURNS TRIGGER AS $$
 BEGIN
+  if (TG_OP = 'INSERT') then
+    INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
+    (new.id_spectacle, 0, new.date_depenser, new.montant, 'Ajouter nouveau cout');
+  end if;
+  if (TG_OP = 'UPDATE') then
+    --for the case that we change id_spectacle.
+    if(new.id_spectacle<>old.id_spectacle) then -- TODO Shouldn't we modify the id in the history too?
+      INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
+      (old.id_spectacle, 0, new.date_depenser, -old.montant, 'Modifier-enlever ancien cout');
+      INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
+      (new.id_spectacle, 0, new.date_depenser, new.montant, 'Modifier-ajouter nouveau cout');
+    end if;
+    if(new.id_spectacle = old.id_spectacle) then
+      INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
+      (new.id_spectacle, 0, new.date_depenser, new.montant-old.montant, 'Modifier ancien cout');
+    end if;
+  end if;
 
-	if (TG_OP = 'INSERT') then
-		INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-		(new.id_spectacle, 0, new.date_depenser, new.montant, 'Ajouter nouveau cout');
-	end if;
+  if (TG_OP = 'DELETE') then
+    INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
+    (old.id_spectacle, 0, old.date_depenser, -old.montant, 'Enlever ancien cout');
+  end if;
 
-	if (TG_OP = 'UPDATE') then
-		--for the case that we change id_spectacle.
-		if(new.id_spectacle<>old.id_spectacle) then
-			INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-			(old.id_spectacle, 0, new.date_depenser, -old.montant, 'Modifier-enlever ancien cout');
-			INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-			(new.id_spectacle, 0, new.date_depenser, new.montant, 'Modifier-ajouter nouveau cout');
-		end if;
-
-		if(new.id_spectacle = old.id_spectacle) then
-			INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-			(new.id_spectacle, 0, new.date_depenser, new.montant-old.montant, 'Modifier ancien cout');
-		end if;
-
-	end if;
-
-	if (TG_OP = 'DELETE') then
-		INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-		(old.id_spectacle, 0, old.date_depenser, -old.montant, 'Enlever ancien cout');
-	end if;
-
-	return new;
+  return new;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -102,20 +98,20 @@ DELETE from Cout_Spectacle where id_cout = 6;
 
 CREATE OR REPLACE FUNCTION check_subvenir_action() RETURNS TRIGGER AS $$
 DECLARE
-	type_spectacle integer;
+  type_spectacle integer;
 BEGIN
-	--check the type of the spectacle 0: cree 1: achete 
-	select type into type_spectacle from Spectacle where id_spectacle = new.id_spectacle;
+  --check the type of the spectacle 0: cree 1: achete 
+  select type into type_spectacle from Spectacle where id_spectacle = new.id_spectacle;
 
-	if(type_spectacle = 0) then new.action = 'creation'; 
-	return new;
-	end if;
+  if(type_spectacle = 0) then new.action = 'creation'; 
+  return new;
+  end if;
 
-	if(type_spectacle = 1) then new.action = 'accueil';
-	return new;
-	end if;
+  if(type_spectacle = 1) then new.action = 'accueil';
+  return new;
+  end if;
 
-	return null;
+  return null;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -132,33 +128,32 @@ INSERT INTO Subvention (id_spectacle, id_organisme, action, montant, date_subven
 
 CREATE OR REPLACE FUNCTION modify_subvenir_historique() RETURNS TRIGGER AS $$
 BEGIN
+  if (TG_OP = 'INSERT') then
+    INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
+    (new.id_spectacle, 1, new.date_subvenir, new.montant, 'Ajouter une nouvelle subvention');
+  end if;
 
-	if (TG_OP = 'INSERT') then
-		INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-		(new.id_spectacle, 1, new.date_subvenir, new.montant, 'Ajouter nouveau subvention');
-	end if;
+  if (TG_OP = 'UPDATE') then
+    --for the case that we change id_spectacle.
+    if(new.id_spectacle<>old.id_spectacle) then --TODO When id_spectacle changes, all historique should change to new id
+      INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
+      (old.id_spectacle, 1, new.date_subvenir, -old.montant, 'Modifier-enlever une ancienne subvention');
+      INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
+      (new.id_spectacle, 1, new.date_subvenir, new.montant, 'Modifier-ajouter une nouvelle subvention');
+    end if;
 
-	if (TG_OP = 'UPDATE') then
-		--for the case that we change id_spectacle.
-		if(new.id_spectacle<>old.id_spectacle) then
-			INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-			(old.id_spectacle, 1, new.date_subvenir, -old.montant, 'Modifier-enlever ancien subvention');
-			INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-			(new.id_spectacle, 1, new.date_subvenir, new.montant, 'Modifier-ajouter nouveau subvention');
-		end if;
+    if(new.id_spectacle = old.id_spectacle) then
+      INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
+      (new.id_spectacle, 1, new.date_subvenir, new.montant-old.montant, 'Modifier une ancienne subvention');
+    end if;
+  end if;
 
-		if(new.id_spectacle = old.id_spectacle) then
-			INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-			(new.id_spectacle, 1, new.date_subvenir, new.montant-old.montant, 'Modifier ancien subvention');
-		end if;
-	end if;
+  if (TG_OP = 'DELETE') then
+    INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
+    (old.id_spectacle, 1, old.date_subvenir, -old.montant, 'Enlever une ancienne subvention');
+  end if;
 
-	if (TG_OP = 'DELETE') then
-		INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-		(old.id_spectacle, 1, old.date_subvenir, -old.montant, 'Enlever ancien subvention');
-	end if;
-
-	return new;
+  return new;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -175,26 +170,24 @@ UPDATE Subvention set id_organisme = 2 where id_spectacle = 3 and id_organisme =
 DELETE from Subvention where id_spectacle = 2 and id_organisme = 3;
 
 -------------------------------------------------------------
-
 --pour la table Repre_Externe--
 -------------------------------------------------------------
 CREATE OR REPLACE FUNCTION check_type_modify_prix() RETURNS TRIGGER AS $$
 DECLARE
-	type_spectacle integer;
+  type_spectacle integer;
 BEGIN
-	--check the type of the spectacle 0: cree 1: achete 
-	select type into type_spectacle from Spectacle where id_spectacle = new.id_spectacle;
+  --check the type of the spectacle 0: cree 1: achete 
+  select type into type_spectacle from Spectacle where id_spectacle = new.id_spectacle;
+  if(type_spectacle = 1) then 
+    raise notice 'Vous ne pouvez pas vendre un spectacle achete d\'autre'; 
+  return null;
+  end if;
 
-	if(type_spectacle = 1) then 
-	raise notice 'on peut que vendre une representation de spectacle cree'; 
-	return null;
-	end if;
+  --if buy over 10, we give them a discout. we can define more rules.
+  if(new.numbre_achete >= 10) then new.prix_vendu = new.prix * 0.8; end if;
+  if(new.numbre_achete < 10) then new.prix_vendu = new.prix; end if;
 
-	--if buy over 10, we give them a discout. we can define more rules.
-	if(new.numbre_achete >= 10) then new.prix_vendu = new.prix * 0.8; end if;
-	if(new.numbre_achete < 10) then new.prix_vendu = new.prix; end if;
-
-	return new;
+  return new;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -210,32 +203,32 @@ INSERT INTO Repre_Externe (id_spectacle, id_compagnie_accueil, date_transac, pri
 
 CREATE OR REPLACE FUNCTION modify_repre_externe_historique() RETURNS TRIGGER AS $$
 BEGIN
-	if (TG_OP = 'INSERT') then
-		INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-		(new.id_spectacle, 1, new.date_transac, new.prix_vendu * new.numbre_achete, 'Ajouter nouveau vente');
-	end if;
+  if (TG_OP = 'INSERT') then
+    INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
+    (new.id_spectacle, 1, new.date_transac, new.prix_vendu * new.numbre_achete, 'Ajouter une nouvelle vente');
+  end if;
 
-	if (TG_OP = 'UPDATE') then
-		--for the case that we change id_spectacle.
-		if(new.id_spectacle<>old.id_spectacle) then
-			INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-			(old.id_spectacle, 1, new.date_transac, -old.prix_vendu*old.numbre_achete, 'Modifier-enlever ancien vente');
-			INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-			(new.id_spectacle, 1, new.date_transac, new.prix_vendu*new.numbre_achete, 'Modifier-ajouter nouveau vente');
-		end if;
+  if (TG_OP = 'UPDATE') then
+    --for the case that we change id_spectacle.
+    if(new.id_spectacle<>old.id_spectacle) then --TODO Again, when id_spectacle changed, we should update the id in the Historique
+      INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
+      (old.id_spectacle, 1, new.date_transac, -old.prix_vendu*old.numbre_achete, 'Modifier-enlever une ancienne vente');
+      INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
+      (new.id_spectacle, 1, new.date_transac, new.prix_vendu*new.numbre_achete, 'Modifier-ajouter une nouvelle vente');
+    end if;
 
-		if(new.id_spectacle = old.id_spectacle) then
-			INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-			(new.id_spectacle, 1, new.date_transac, new.prix_vendu*new.numbre_achete-old.prix_vendu*old.numbre_achete, 'Modifier ancien vente');
-		end if;
-	end if;
+    if(new.id_spectacle = old.id_spectacle) then
+      INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
+      (new.id_spectacle, 1, new.date_transac, new.prix_vendu*new.numbre_achete-old.prix_vendu*old.numbre_achete, 'Modifier une ancienne vente');
+    end if;
+  end if;
 
-	if (TG_OP = 'DELETE') then
-		INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-		(old.id_spectacle, 1, old.date_transac, -old.prix_vendu * old.numbre_achete, 'Enlever ancien vente');
-	end if;
+  if (TG_OP = 'DELETE') then
+    INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
+    (old.id_spectacle, 1, old.date_transac, -old.prix_vendu * old.numbre_achete, 'Enlever une ancienne vente');
+  end if;
 
-	return new;
+  return new;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -253,6 +246,5 @@ DELETE from Repre_Externe where id_repre_ext = 1;
 
 --when we delete in over 3 table, the time of the operation is current time.
 -------------------------------------------------------------
-
 --pour la table Billet--
 -------------------------------------------------------------
