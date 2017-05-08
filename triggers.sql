@@ -107,15 +107,11 @@ BEGIN
 	--check the type of the spectacle 0: cree 1: achete 
 	select type into type_spectacle from Spectacle where id_spectacle = new.id_spectacle;
 
-	if(type_spectacle = 0) then new.action = 'creation'; 
-	return new;
-	end if;
+	if(type_spectacle = 0) then new.action = 'creation'; end if;
 
-	if(type_spectacle = 1) then new.action = 'accueil';
-	return new;
-	end if;
+	if(type_spectacle = 1) then new.action = 'accueil'; end if;
 
-	return null;
+	return new;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -254,5 +250,49 @@ DELETE from Repre_Externe where id_repre_ext = 1;
 --when we delete in over 3 table, the time of the operation is current time.
 -------------------------------------------------------------
 
---pour la table Billet--
+--pour la table Reservation--
 -------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION check_date_places() RETURNS TRIGGER AS $$
+DECLARE
+	ligne Repre_Interne%ROWTYPE;
+	places_total integer;
+	places_Reserve integer;
+	places_vendu integer;
+BEGIN
+	select * into ligne from Repre_Interne where id_repre = new.id_repre;
+
+	--check the date_reserver >= date_prevendre and date_regler <= date_sortir
+	if( new.date_reserver < ligne.date_prevendre ) then return null; end if;
+	if( new.date_regler > ligne.date_sortir) then return null; end if;
+
+	--whether we have enough places reste, which include billet and other reservation
+	select places into places_total from Spectacle where id_spectacle = ligne.id_spectacle;
+	raise notice 'places_total is % ', places_total;
+
+	select coalesce(sum(numbre),0) into places_vendu from Billet where id_repre = new.id_repre;
+	raise notice 'places_vendu is % ', places_vendu;
+
+	select coalesce(sum(numbre_reserver),0) into places_reserve from Reservation where id_repre = new.id_repre;
+	raise notice 'places_reserve is % ', places_reserve;
+
+	raise notice 'places rest %', places_total - places_reserve - places_vendu - new.numbre_reserver;
+
+	if(places_total - places_reserve - places_vendu - new.numbre_reserver <= 0 ) then return null; end if;
+
+	return new;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER date_places_checker
+BEFORE INSERT OR UPDATE ON Reservation
+FOR EACH ROW
+EXECUTE PROCEDURE check_date_places();
+
+INSERT INTO Reservation (id_repre, date_reserver, date_regler, numbre_reserver) VALUES
+(3, '2017-04-10', '2017-04-18', 10);
+INSERT INTO Reservation (id_repre, date_reserver, date_regler, numbre_reserver) VALUES
+(3, '2017-04-18', '2017-04-28', 10);
+INSERT INTO Reservation (id_repre, date_reserver, date_regler, numbre_reserver) VALUES
+(3, '2017-04-18', '2017-04-20', 50);
+UPDATE Reservation set numbre_reserver = 100 where id_reserve = 1;

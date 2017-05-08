@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS Repre_Interne (
 INSERT INTO Repre_Interne (id_spectacle, date_prevendre, date_sortir, politique) VALUES
 (1, '2015-12-10','2015-12-25', 1),
 (1, '2016-12-10','2016-12-30', 2),
-(3, '2017-02-09','2017-02-14', 3);
+(3, '2017-04-15','2017-04-25', 3);
 
 /*
     INSERT INTO Repre_Interne (id_spectacle, date_prevendre, date_sortir, politique) VALUES
@@ -150,12 +150,12 @@ CREATE TABLE IF NOT EXISTS Reservation (
         triggers check date_reserver > date_prevendre
         triggers check date_regler < date_sortir
     */
-    places_reserve integer NOT NULL CHECK (places_reserve > 0)
+    numbre_reserver integer NOT NULL CHECK (numbre_reserver > 0)
     /* triggers there is enough places */
     --inner join select for getting information of spectacle.
 );
 
-INSERT INTO Reservation (id_repre, date_reserver, date_regler, places_reserve) VALUES
+INSERT INTO Reservation (id_repre, date_reserver, date_regler, numbre_reserver) VALUES
 (1, '2015-12-10', '2015-12-20', 10);
 
 ----------------------------------------------------
