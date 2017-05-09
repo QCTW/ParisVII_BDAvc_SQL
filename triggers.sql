@@ -3,12 +3,9 @@
 -- pour la table de today 
 -----------------------------------------------------------
 CREATE OR REPLACE FUNCTION on_time_change() RETURNS TRIGGER AS $$
-DECLARE
-  reserv reservation%ROWTYPE;
 BEGIN
-  select * into reserv from Reservation where date_delai < new.time;
+  delete from Reservation where date_delai < new.time;
   /*SELECT into teste EXTRACT(epoch FROM (reserv.date_delai - new.time)); */
-  delete from Reservation where id_reserve = reserv.id_reserve;
 return new;
 END;
 $$ LANGUAGE plpgsql;
