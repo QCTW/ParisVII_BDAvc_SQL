@@ -198,7 +198,7 @@ BEGIN
   --check the type of the spectacle 0: cree 1: achete 
   select type into type_spectacle from Spectacle where id_spectacle = new.id_spectacle;
   if(type_spectacle = 1) then 
-    raise notice 'Vous ne pouvez pas vendre un spectacle achete d\'autre'; 
+    raise notice 'Vous ne pouvez pas vendre un spectacle achete'; 
   return null;
   end if;
 
