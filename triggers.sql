@@ -1,8 +1,32 @@
 /* triggers */
+------------------------------------------------------------
+-- pour la table de today 
+-----------------------------------------------------------
+-- TODO Time still incorrect
+CREATE OR REPLACE FUNCTION on_time_change() RETURNS TRIGGER AS $$
+DECLARE
+  reserv reservation%ROWTYPE;
+  teste integer;
+BEGIN
+  select * into reserv from Reservation;
+  select into teste DATEDIFF(HOUR, reserv.date_delai, new.time);
+  raise notice 'Test % ', teste;
+  if( (select DATEDIFF(HOUR, reserv.date_delai, new.time)<0) ) then
+	delete from Reservation where id = reserv.id_reserve;
+  end if;
+return new;
+END;
+$$ LANGUAGE plpgsql;
 
---pour la table de cout_spectacle--
+CREATE TRIGGER on_time_changer 
+AFTER UPDATE ON Today 
+FOR EACH ROW 
+EXECUTE PROCEDURE on_time_change();
+
+UPDATE Today SET time = current_timestamp WHERE id = 0;
+------------------------------------------------------------
+-- pour la table de cout_spectacle
 -------------------------------------------------------------
-
 CREATE OR REPLACE FUNCTION check_cout_achete() RETURNS TRIGGER AS $$
 DECLARE
   ligne cout_spectacle%ROWTYPE;
@@ -92,8 +116,7 @@ DELETE from Cout_Spectacle where id_cout = 6;
 --if insert is failed, the serial number could not rollback. 
 --so after one insert is failed in line 29-30, the serial number will be 6 not be 5.
 -------------------------------------------------------------
-
---pour la table subvention--
+--pour la table subvention
 -------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION check_subvenir_action() RETURNS TRIGGER AS $$
@@ -170,7 +193,7 @@ UPDATE Subvention set id_organisme = 2 where id_spectacle = 3 and id_organisme =
 DELETE from Subvention where id_spectacle = 2 and id_organisme = 3;
 
 -------------------------------------------------------------
---pour la table Repre_Externe--
+--pour la table Repre_Externe
 -------------------------------------------------------------
 CREATE OR REPLACE FUNCTION check_type_modify_prix() RETURNS TRIGGER AS $$
 DECLARE
@@ -246,7 +269,7 @@ DELETE from Repre_Externe where id_repre_ext = 1;
 
 --when we delete in over 3 table, the time of the operation is current time.
 -------------------------------------------------------------
---pour la table Reservation--
+--pour la table Reservation
 -------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION check_date_places() RETURNS TRIGGER AS $$
@@ -258,9 +281,9 @@ DECLARE
 BEGIN
 	select * into ligne from Repre_Interne where id_repre = new.id_repre;
 
-	--check the date_reserver >= date_prevendre and date_regler <= date_sortir
+	--check the date_reserver >= date_prevendre and date_delai <= date_sortir
 	if( new.date_reserver < ligne.date_prevendre ) then return null; end if;
-	if( new.date_regler > ligne.date_sortir) then return null; end if;
+	if( new.date_delai > ligne.date_sortir) then return null; end if;
 
 	--whether we have enough places reste, which include billet and other reservation
 	select places into places_total from Spectacle where id_spectacle = ligne.id_spectacle;
@@ -285,10 +308,10 @@ BEFORE INSERT OR UPDATE ON Reservation
 FOR EACH ROW
 EXECUTE PROCEDURE check_date_places();
 
-INSERT INTO Reservation (id_repre, date_reserver, date_regler, numbre_reserver) VALUES
+INSERT INTO Reservation (id_repre, date_reserver, date_delai, numbre_reserver) VALUES
 (3, '2017-04-10', '2017-04-18', 10);
-INSERT INTO Reservation (id_repre, date_reserver, date_regler, numbre_reserver) VALUES
+INSERT INTO Reservation (id_repre, date_reserver, date_delai, numbre_reserver) VALUES
 (3, '2017-04-18', '2017-04-28', 10);
-INSERT INTO Reservation (id_repre, date_reserver, date_regler, numbre_reserver) VALUES
+INSERT INTO Reservation (id_repre, date_reserver, date_delai, numbre_reserver) VALUES
 (3, '2017-04-18', '2017-04-20', 50);
 UPDATE Reservation set numbre_reserver = 100 where id_reserve = 1;

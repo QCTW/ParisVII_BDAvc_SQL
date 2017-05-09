@@ -143,20 +143,21 @@ INSERT INTO Repre_Interne (id_spectacle, date_prevendre, date_sortir, politique)
 CREATE TABLE IF NOT EXISTS Reservation (
     id_reserve serial PRIMARY KEY,
     id_repre integer NOT NULL references Repre_Interne,
-    date_reserver date NOT NULL,
-    date_regler date NOT NULL,
-    CHECK (date_reserver < date_regler),
+    date_reserver timestamp NOT NULL,
+    date_delai timestamp NOT NULL,
     /* 
         triggers check date_reserver > date_prevendre
         triggers check date_regler < date_sortir
     */
-    numbre_reserver integer NOT NULL CHECK (numbre_reserver > 0)
+    numbre_reserver integer NOT NULL CHECK (numbre_reserver > 0),
+    CHECK (date_reserver < date_delai)
     /* triggers there is enough places */
     --inner join select for getting information of spectacle.
 );
 
-INSERT INTO Reservation (id_repre, date_reserver, date_regler, numbre_reserver) VALUES
-(1, '2015-12-10', '2015-12-20', 10);
+INSERT INTO Reservation (id_repre, date_reserver, date_delai, numbre_reserver) VALUES
+(1, to_timestamp('13:30 14/04/2017', 'HH24:MI DD/MM/YYYY'), to_timestamp('13:30 14/04/2017', 'HH24:MI DD/MM/YYYY')+ interval '24 hours', 10),
+(1, (SELECT time FROM Today WHERE id = 0) - interval '72 hours', (SELECT time FROM Today WHERE id = 0)- interval '24 hours', 5);
 
 ----------------------------------------------------
 
