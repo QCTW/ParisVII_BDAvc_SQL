@@ -2,18 +2,13 @@
 ------------------------------------------------------------
 -- pour la table de today 
 -----------------------------------------------------------
--- TODO Time still incorrect
 CREATE OR REPLACE FUNCTION on_time_change() RETURNS TRIGGER AS $$
 DECLARE
   reserv reservation%ROWTYPE;
-  teste integer;
 BEGIN
-  select * into reserv from Reservation;
-  select into teste DATEDIFF(HOUR, reserv.date_delai, new.time);
-  raise notice 'Test % ', teste;
-  if( (select DATEDIFF(HOUR, reserv.date_delai, new.time)<0) ) then
-	delete from Reservation where id = reserv.id_reserve;
-  end if;
+  select * into reserv from Reservation where date_delai < new.time;
+  /*SELECT into teste EXTRACT(epoch FROM (reserv.date_delai - new.time)); */
+  delete from Reservation where id_reserve = reserv.id_reserve;
 return new;
 END;
 $$ LANGUAGE plpgsql;
@@ -24,6 +19,7 @@ FOR EACH ROW
 EXECUTE PROCEDURE on_time_change();
 
 UPDATE Today SET time = current_timestamp WHERE id = 0;
+
 ------------------------------------------------------------
 -- pour la table de cout_spectacle
 -------------------------------------------------------------
@@ -80,22 +76,22 @@ BEGIN
     (new.id_spectacle, 0, new.date_depenser, new.montant, 'Ajouter nouveau cout');
   end if;
   if (TG_OP = 'UPDATE') then
-    --for the case that we change id_spectacle.
-    if(new.id_spectacle<>old.id_spectacle) then -- TODO Shouldn't we modify the id in the history too?
+    -- In case that we change id_spectacle because of typo...
+    if(new.id_spectacle<>old.id_spectacle) then 
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-      (old.id_spectacle, 0, new.date_depenser, -old.montant, 'Modifier-enlever ancien cout');
+      (old.id_spectacle, 0, new.date_depenser, -old.montant, 'Modifier-enlever un ancien cout');
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-      (new.id_spectacle, 0, new.date_depenser, new.montant, 'Modifier-ajouter nouveau cout');
+      (new.id_spectacle, 0, new.date_depenser, new.montant, 'Modifier-ajouter un nouveau cout');
     end if;
     if(new.id_spectacle = old.id_spectacle) then
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-      (new.id_spectacle, 0, new.date_depenser, new.montant-old.montant, 'Modifier ancien cout');
+      (new.id_spectacle, 0, new.date_depenser, new.montant-old.montant, 'Modifier un ancien cout');
     end if;
   end if;
 
   if (TG_OP = 'DELETE') then
     INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-    (old.id_spectacle, 0, old.date_depenser, -old.montant, 'Enlever ancien cout');
+    (old.id_spectacle, 0, old.date_depenser, -old.montant, 'Enlever un ancien cout');
   end if;
 
   return new;
@@ -157,8 +153,8 @@ BEGIN
   end if;
 
   if (TG_OP = 'UPDATE') then
-    --for the case that we change id_spectacle.
-    if(new.id_spectacle<>old.id_spectacle) then --TODO When id_spectacle changes, all historique should change to new id
+    -- In case that we change id_spectacle because of typo...
+    if(new.id_spectacle<>old.id_spectacle) then 
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
       (old.id_spectacle, 1, new.date_subvenir, -old.montant, 'Modifier-enlever une ancienne subvention');
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
@@ -232,8 +228,8 @@ BEGIN
   end if;
 
   if (TG_OP = 'UPDATE') then
-    --for the case that we change id_spectacle.
-    if(new.id_spectacle<>old.id_spectacle) then --TODO Again, when id_spectacle changed, we should update the id in the Historique
+    -- In case that we change id_spectacle because of typo
+    if(new.id_spectacle<>old.id_spectacle) then 
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
       (old.id_spectacle, 1, new.date_transac, -old.prix_vendu*old.numbre_achete, 'Modifier-enlever une ancienne vente');
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
