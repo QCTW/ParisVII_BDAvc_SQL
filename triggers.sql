@@ -1,12 +1,54 @@
-/* triggers */
+-- Load shared funtions
+\i functions.sql
 ------------------------------------------------------------
 -- pour la table Billet
 -----------------------------------------------------------
+CREATE OR REPLACE FUNCTION on_billet_preprocess() RETURNS TRIGGER AS $$
+DECLARE 
+  repreInfo Repre_Interne%ROWTYPE;
+  placeMax integer;
+  placeVentu integer;
+  placeReserve integer;
+BEGIN
+  SELECT * INTO repreInfo FROM Repre_Interne WHERE id_repre = new.id_repre;
+  SELECT INTO placeVentu calc_numbre_place_dans_billet(new.id_repre);
+  SELECT INTO placeReserve calc_numbre_place_dans_reserv(new.id_repre); 
+  SELECT places INTO placeMax FROM Spectacle WHERE id_spectacle = repreInfo.id_spectacle;
+
+  if (TG_OP = 'INSERT') then
+    if (placeMax - placeVentu - placeReserve) < new.numbre then 
+      raise notice 'Il n y a assez de place pour % billet', new.numbre;
+      return null;
+    end if;
+    return new;
+  end if;
+
+  if (TG_OP = 'UPDATE') then
+    if (new.numbre > old.numbre) then
+      if (placeMax - placeVentu - placeReserve) < (new.numbre-old.numbre) then
+        raise notice 'Il n y a assez de place pour % billet', new.numbre;
+        return null;
+      end if;
+    end if;
+    return new;
+  end if;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER on_billet_preprocessor
+BEFORE INSERT OR UPDATE ON Billet
+FOR EACH ROW 
+EXECUTE PROCEDURE on_billet_preprocess();
+
+INSERT into Billet VALUES (1, 0, 1, 99.9, 9);
+UPDATE Billet SET numbre = 10 WHERE id_repre = 1 AND tarif_type = 0 AND par_politique = 1;
+
+----------------------------------------------------------
 CREATE OR REPLACE FUNCTION on_billet_change() RETURNS TRIGGER AS $$
 DECLARE 
   now Today.time%TYPE;
 BEGIN
-  select time into now from Today where id = 0;
+  SELECT time INTO now FROM Today WHERE id = 0;
   if (TG_OP = 'INSERT') then
     INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
     ((select id_spectacle from Repre_Interne where id_repre = new.id_repre), 1, now, new.prix_effectif, 'Une nouvelle recette de billet');
@@ -306,9 +348,9 @@ DELETE from Repre_Externe where id_repre_ext = 1;
 CREATE OR REPLACE FUNCTION check_date_places() RETURNS TRIGGER AS $$
 DECLARE
 	ligne Repre_Interne%ROWTYPE;
-	places_total integer;
-	places_Reserve integer;
-	places_vendu integer;
+	placeTotal integer;
+	placeReserve integer;
+	placeVendu integer;
 BEGIN
 	select * into ligne from Repre_Interne where id_repre = new.id_repre;
 
@@ -317,18 +359,18 @@ BEGIN
 	if( new.date_delai > ligne.date_sortir) then return null; end if;
 
 	--whether we have enough places reste, which include billet and other reservation
-	select places into places_total from Spectacle where id_spectacle = ligne.id_spectacle;
-	raise notice 'Places totals : % ', places_total;
+	select places into placeTotal from Spectacle where id_spectacle = ligne.id_spectacle;
+	raise notice 'Places totals : % ', placeTotal;
 
-	select coalesce(sum(numbre),0) into places_vendu from Billet where id_repre = new.id_repre;
-	raise notice 'Places vendus : % ', places_vendu;
+	SELECT INTO placeVendu calc_numbre_place_dans_billet(new.id_repre);
+	raise notice 'Places vendus : % ', placeVendu;
 
-	select coalesce(sum(numbre_reserver),0) into places_reserve from Reservation where id_repre = new.id_repre;
-	raise notice 'Places reserves : % ', places_reserve;
+	SELECT INTO placeReserve calc_numbre_place_dans_reserv(new.id_repre);
+	raise notice 'Places reserves : % ', placeReserve;
 
-	raise notice 'Places restes : %', places_total - places_reserve - places_vendu - new.numbre_reserver;
+	raise notice 'Places restes : %', placeTotal - placeReserve - placeVendu - new.numbre_reserver;
 
-	if(places_total - places_reserve - places_vendu - new.numbre_reserver <= 0 ) then return null; end if;
+	if(placeTotal - placeReserve - placeVendu - new.numbre_reserver <= 0 ) then return null; end if;
 
 	return new;
 END;

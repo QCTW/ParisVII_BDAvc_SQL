@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION calc_numbre_place_dans_billet (idRepre INTEGER) RETUR
 DECLARE
   placeVendu INTEGER;
 BEGIN
-  SELECT sum(numbre) INTO placeVendu FROM Billet WHERE id_repre = idRepre;
+  SELECT COALESCE(sum(numbre), 0) INTO placeVendu FROM Billet WHERE id_repre = idRepre;
   raise notice 'Places vendus : % ', placeVendu;	
   RETURN placeVendu;
 END;
@@ -14,7 +14,7 @@ CREATE OR REPLACE FUNCTION calc_numbre_place_dans_reserv (idRepre INTEGER) RETUR
 DECLARE
   placeReserve INTEGER;
 BEGIN
-  SELECT sum(numbre_reserver) INTO placeReserve FROM Reservation WHERE id_repre = idRepre;
+  SELECT COALESCE(sum(numbre_reserver), 0) INTO placeReserve FROM Reservation WHERE id_repre = idRepre;
   raise notice 'Places reserves : % ', placeReserve;
   RETURN placeReserve;
 END;

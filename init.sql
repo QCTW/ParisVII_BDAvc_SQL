@@ -157,7 +157,9 @@ CREATE TABLE IF NOT EXISTS Reservation (
 
 INSERT INTO Reservation (id_repre, date_reserver, date_delai, numbre_reserver) VALUES
 (1, to_timestamp('13:30 14/04/2017', 'HH24:MI DD/MM/YYYY'), to_timestamp('13:30 14/04/2017', 'HH24:MI DD/MM/YYYY')+ interval '24 hours', 10),
-(1, (SELECT time FROM Today WHERE id = 0) - interval '72 hours', (SELECT time FROM Today WHERE id = 0)- interval '24 hours', 5);
+(1, (SELECT time FROM Today WHERE id = 0) - interval '72 hours', (SELECT time FROM Today WHERE id = 0)- interval '24 hours', 5),
+(3, (SELECT time FROM Today WHERE id = 0), (SELECT time FROM Today WHERE id = 0)+ interval '72 hours', 4),
+(3, (SELECT time FROM Today WHERE id = 0) - interval '72 hours', (SELECT time FROM Today WHERE id = 0)- interval '24 hours', 3);
 
 ----------------------------------------------------
 
