@@ -1,7 +1,48 @@
 /* triggers */
 ------------------------------------------------------------
--- pour la table de today 
+-- pour la table Billet
 -----------------------------------------------------------
+CREATE OR REPLACE FUNCTION on_billet_change() RETURNS TRIGGER AS $$
+DECLARE 
+  repres Repre_Interne%ROWTYPE;
+  now Today%ROWTYPE;
+BEGIN
+  select * into repres from Repre_Interne where id_repre = new.id_repre;
+  select time into now from Today where id = 0;
+  if (TG_OP = 'INSERT') then
+    INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
+    (repres.id_spectacle, 1, now, new.prix_effectif, 'Une nouvelle recette de billet');
+  end if;
+
+  if (TG_OP = 'UPDATE') then
+    --In case of the change of id_repre by typo...
+    if (new.id_repre <> old.id_repre) then
+        INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
+        (repres.id_spectacle, 1, now, new.prix_effectif, 'Ajouter un billet avec id_repre correct'),
+	((SELECT id_spectacle FROM Repre_Interne WHERE id_repre = old.id_repre), 1, now, -old.prix_effectif, 'Enlever un billet qui as id_repre incorrect');
+    end if;
+    if (new.prix_effectif <> old.prix_effectif) then
+        INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
+        (repres.id_spectacle, 1, now, new.prix_effectif - old.prix_effectif, 'Modifier un billet');
+    end if;
+  end if;
+
+  if (TG_OP = 'DELETE') then
+    INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
+    (repres.id_spectacle, 1, now, -old.prix_effectif, 'Elever un billet');
+  end if;
+  return new;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER on_billet_changer
+AFTER INSERT OR UPDATE OR DELETE ON Billet
+FOR EACH ROW
+EXECUTE PROCEDURE on_billet_change();
+
+------------------------------------------------------------
+-- pour la table Today 
+------------------------------------------------------------
 CREATE OR REPLACE FUNCTION on_time_change() RETURNS TRIGGER AS $$
 BEGIN
   delete from Reservation where date_delai < new.time;
@@ -18,13 +59,13 @@ EXECUTE PROCEDURE on_time_change();
 UPDATE Today SET time = current_timestamp WHERE id = 0;
 
 ------------------------------------------------------------
--- pour la table de cout_spectacle
+-- pour la table Cout_spectacle
 -------------------------------------------------------------
 CREATE OR REPLACE FUNCTION check_cout_achete() RETURNS TRIGGER AS $$
 DECLARE
   ligne cout_spectacle%ROWTYPE;
 BEGIN
-  if(TG_OP = 'INSERT') then
+  if (TG_OP = 'INSERT') then
     --check whether the type of the spectacle is 'achete'.
     if ((select type from Spectacle where id_spectacle = new.id_spectacle) = 1) then 
     --check whether the cost of the spectacle for buying is exist. if not, continue inserting. 
@@ -37,7 +78,7 @@ BEGIN
     end if;
   end if;
 
-  if(TG_OP = 'UPDATE') then
+  if (TG_OP = 'UPDATE') then
     --if the id_spectacle change, check whether the new.id_spectacle has type achete and has existing cost.
     if (new.id_spectacle <> old.id_spectacle) then
       if ((select type from Spectacle where id_spectacle = new.id_spectacle) = 1) then 
@@ -73,7 +114,7 @@ BEGIN
     (new.id_spectacle, 0, new.date_depenser, new.montant, 'Ajouter nouveau cout');
   end if;
   if (TG_OP = 'UPDATE') then
-    -- In case that we change id_spectacle because of typo...
+    -- In case that we have to modify id_spectacle because of typo...
     if(new.id_spectacle<>old.id_spectacle) then 
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
       (old.id_spectacle, 0, new.date_depenser, -old.montant, 'Modifier-enlever un ancien cout');
@@ -106,8 +147,6 @@ UPDATE Cout_Spectacle set montant = 140.01 where id_cout = 6;
 UPDATE Cout_Spectacle set id_spectacle = 2 where id_cout = 4;
 DELETE from Cout_Spectacle where id_cout = 6;
 
---if insert is failed, the serial number could not rollback. 
---so after one insert is failed in line 29-30, the serial number will be 6 not be 5.
 -------------------------------------------------------------
 --pour la table subvention
 -------------------------------------------------------------
@@ -118,15 +157,12 @@ DECLARE
 BEGIN
   --check the type of the spectacle 0: cree 1: achete 
   select type into type_spectacle from Spectacle where id_spectacle = new.id_spectacle;
-
-  if(type_spectacle = 0) then new.action = 'creation'; 
+  if (type_spectacle = 0) then new.action = 'creation'; 
   return new;
   end if;
-
-  if(type_spectacle = 1) then new.action = 'accueil';
+  if (type_spectacle = 1) then new.action = 'accueil';
   return new;
   end if;
-
   return null;
 END;
 $$ LANGUAGE plpgsql;
@@ -150,7 +186,7 @@ BEGIN
   end if;
 
   if (TG_OP = 'UPDATE') then
-    -- In case that we change id_spectacle because of typo...
+    -- In case that we have to modify id_spectacle because of typo...
     if(new.id_spectacle<>old.id_spectacle) then 
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
       (old.id_spectacle, 1, new.date_subvenir, -old.montant, 'Modifier-enlever une ancienne subvention');
@@ -199,7 +235,7 @@ BEGIN
   return null;
   end if;
 
-  --if buy over 10, we give them a discout. we can define more rules.
+  --if buy over 10, we give them a discount. we can define more rules.
   if(new.numbre_achete >= 10) then new.prix_vendu = new.prix * 0.8; end if;
   if(new.numbre_achete < 10) then new.prix_vendu = new.prix; end if;
 
@@ -260,7 +296,6 @@ UPDATE Repre_Externe set id_spectacle = 2 where id_repre_ext = 3;
 UPDATE Repre_Externe set prix = 100, numbre_achete = 5 where id_repre_ext = 3;
 DELETE from Repre_Externe where id_repre_ext = 1;
 
---when we delete in over 3 table, the time of the operation is current time.
 -------------------------------------------------------------
 --pour la table Reservation
 -------------------------------------------------------------
