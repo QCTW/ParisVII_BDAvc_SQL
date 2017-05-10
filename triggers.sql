@@ -35,13 +35,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER on_billet_preprocessor
-BEFORE INSERT OR UPDATE ON Billet
+CREATE TRIGGER on_billet_preprocessor BEFORE INSERT OR UPDATE ON Billet
 FOR EACH ROW 
 EXECUTE PROCEDURE on_billet_preprocess();
 
 INSERT into Billet VALUES (1, 0, 1, 99.9, 9);
-UPDATE Billet SET numbre = 10 WHERE id_repre = 1 AND tarif_type = 0 AND par_politique = 1;
+UPDATE Billet SET numbre = 100 WHERE id_repre = 1 AND tarif_type = 0 AND par_politique = 1;
 
 ----------------------------------------------------------
 CREATE OR REPLACE FUNCTION on_billet_change() RETURNS TRIGGER AS $$
@@ -75,8 +74,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER on_billet_changer
-AFTER INSERT OR UPDATE OR DELETE ON Billet
+CREATE TRIGGER on_billet_changer AFTER INSERT OR UPDATE OR DELETE ON Billet
 FOR EACH ROW
 EXECUTE PROCEDURE on_billet_change();
 
@@ -96,8 +94,7 @@ return new;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER on_time_changer 
-AFTER UPDATE ON Today 
+CREATE TRIGGER on_time_changer AFTER UPDATE ON Today 
 FOR EACH ROW 
 EXECUTE PROCEDURE on_time_change();
 
@@ -141,8 +138,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER cout_achete_checker
-BEFORE INSERT OR UPDATE ON Cout_Spectacle
+CREATE TRIGGER cout_achete_checker BEFORE INSERT OR UPDATE ON Cout_Spectacle
 FOR EACH ROW
 EXECUTE PROCEDURE check_cout_achete();
 
@@ -181,8 +177,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER historique_cout_modifier
-AFTER INSERT OR UPDATE OR DELETE ON Cout_Spectacle 
+CREATE TRIGGER historique_cout_modifier AFTER INSERT OR UPDATE OR DELETE ON Cout_Spectacle 
 FOR EACH ROW
 EXECUTE PROCEDURE modify_cout_historique();
 
@@ -212,8 +207,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER subvenir_action_checker
-BEFORE INSERT OR UPDATE ON Subvention
+CREATE TRIGGER subvenir_action_checker BEFORE INSERT OR UPDATE ON Subvention
 FOR EACH ROW
 EXECUTE PROCEDURE check_subvenir_action();
 
@@ -254,8 +248,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER historique_subvenir_modifier
-AFTER INSERT OR UPDATE OR DELETE ON Subvention 
+CREATE TRIGGER historique_subvenir_modifier AFTER INSERT OR UPDATE OR DELETE ON Subvention 
 FOR EACH ROW
 EXECUTE PROCEDURE modify_subvenir_historique();
 
@@ -288,8 +281,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER type_checker_prix_modifier
-BEFORE INSERT OR UPDATE ON Repre_Externe
+CREATE TRIGGER type_checker_prix_modifier BEFORE INSERT OR UPDATE ON Repre_Externe
 FOR EACH ROW
 EXECUTE PROCEDURE check_type_modify_prix();
 
@@ -329,8 +321,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER historique_repre_externe_modifier
-AFTER INSERT OR UPDATE OR DELETE ON Repre_Externe 
+CREATE TRIGGER historique_repre_externe_modifier AFTER INSERT OR UPDATE OR DELETE ON Repre_Externe 
 FOR EACH ROW
 EXECUTE PROCEDURE modify_repre_externe_historique();
 
@@ -376,8 +367,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER date_places_checker
-BEFORE INSERT OR UPDATE ON Reservation
+CREATE TRIGGER date_places_checker BEFORE INSERT OR UPDATE ON Reservation
 FOR EACH ROW
 EXECUTE PROCEDURE check_date_places();
 
