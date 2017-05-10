@@ -4,32 +4,30 @@
 -----------------------------------------------------------
 CREATE OR REPLACE FUNCTION on_billet_change() RETURNS TRIGGER AS $$
 DECLARE 
-  repres Repre_Interne%ROWTYPE;
-  now Today%ROWTYPE;
+  now Today.time%TYPE;
 BEGIN
-  select * into repres from Repre_Interne where id_repre = new.id_repre;
   select time into now from Today where id = 0;
   if (TG_OP = 'INSERT') then
     INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-    (repres.id_spectacle, 1, now, new.prix_effectif, 'Une nouvelle recette de billet');
+    ((select id_spectacle from Repre_Interne where id_repre = new.id_repre), 1, now, new.prix_effectif, 'Une nouvelle recette de billet');
   end if;
 
   if (TG_OP = 'UPDATE') then
     --In case of the change of id_repre by typo...
     if (new.id_repre <> old.id_repre) then
         INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-        (repres.id_spectacle, 1, now, new.prix_effectif, 'Ajouter un billet avec id_repre correct'),
+        ((SELECT id_spectacle FROM Repre_Interne WHERE id_repre = new.id_repre), 1, now, new.prix_effectif, 'Ajouter un billet avec id_repre correct'),
 	((SELECT id_spectacle FROM Repre_Interne WHERE id_repre = old.id_repre), 1, now, -old.prix_effectif, 'Enlever un billet qui as id_repre incorrect');
     end if;
-    if (new.prix_effectif <> old.prix_effectif) then
+    if (new.id_repre = old.id_repre AND new.prix_effectif <> old.prix_effectif) then
         INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-        (repres.id_spectacle, 1, now, new.prix_effectif - old.prix_effectif, 'Modifier un billet');
+        ((select id_spectacle from Repre_Interne where id_repre = new.id_repre), 1, now, new.prix_effectif - old.prix_effectif, 'Modifier un billet');
     end if;
   end if;
 
   if (TG_OP = 'DELETE') then
     INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-    (repres.id_spectacle, 1, now, -old.prix_effectif, 'Elever un billet');
+    ((select id_spectacle from Repre_Interne where id_repre = old.id_repre), 1, now, -old.prix_effectif, 'Elever un billet');
   end if;
   return new;
 END;
@@ -39,6 +37,11 @@ CREATE TRIGGER on_billet_changer
 AFTER INSERT OR UPDATE OR DELETE ON Billet
 FOR EACH ROW
 EXECUTE PROCEDURE on_billet_change();
+
+-- Test
+INSERT into Billet VALUES (2, 1, 1, 111.11, 11);
+UPDATE Billet SET prix_effectif = 200 WHERE id_repre = 2 AND tarif_type = 1 AND par_politique = 1;
+DELETE FROM Billet WHERE id_repre = 2 AND tarif_type = 1 AND par_politique = 1;
 
 ------------------------------------------------------------
 -- pour la table Today 
@@ -121,7 +124,7 @@ BEGIN
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
       (new.id_spectacle, 0, new.date_depenser, new.montant, 'Modifier-ajouter un nouveau cout');
     end if;
-    if(new.id_spectacle = old.id_spectacle) then
+    if(new.id_spectacle = old.id_spectacle AND new.montant <> old.montant) then
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
       (new.id_spectacle, 0, new.date_depenser, new.montant-old.montant, 'Modifier un ancien cout');
     end if;
@@ -194,7 +197,7 @@ BEGIN
       (new.id_spectacle, 1, new.date_subvenir, new.montant, 'Modifier-ajouter une nouvelle subvention');
     end if;
 
-    if(new.id_spectacle = old.id_spectacle) then
+    if(new.id_spectacle = old.id_spectacle AND new.montant <> old.montant) then
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
       (new.id_spectacle, 1, new.date_subvenir, new.montant-old.montant, 'Modifier une ancienne subvention');
     end if;
@@ -269,7 +272,7 @@ BEGIN
       (new.id_spectacle, 1, new.date_transac, new.prix_vendu*new.numbre_achete, 'Modifier-ajouter une nouvelle vente');
     end if;
 
-    if(new.id_spectacle = old.id_spectacle) then
+    if(new.id_spectacle = old.id_spectacle AND new.numbre_achete <> old.numbre_achete) then
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
       (new.id_spectacle, 1, new.date_transac, new.prix_vendu*new.numbre_achete-old.prix_vendu*old.numbre_achete, 'Modifier une ancienne vente');
     end if;
