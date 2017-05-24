@@ -63,7 +63,7 @@ DECLARE
   today Today.time%TYPE;
 BEGIN
   SELECT time INTO today FROM Today WHERE id = 0;
-  SELECT * INTO jointInfo FROM (Repre_Interne AS R NATURAL JOIN Spectacle AS S) WHERE R.id_repre = idRepre AND R.id_spectacle = S.id_spectacle;
+  SELECT * INTO jointInfo FROM (Repre_Interne AS R NATURAL JOIN Spectacle AS S) WHERE R.id_repre = idRepre;
   CASE tarifType /* 0=Normal, 1=Reduit*/
   WHEN 1 THEN
         prixOrigin := jointInfo.tarif_reduit;
