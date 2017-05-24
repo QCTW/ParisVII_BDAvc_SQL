@@ -29,7 +29,7 @@ DECLARE
   vendu numeric (8,2);
   capacity numeric (8,2);
 BEGIN
-          SELECT places INTO capacity FROM Repre_Interne AS R NATURAL JOIN Spectacle AS S WHERE R.id_repre = idRepre AND R.id_spectacle = S.id_spectacle;
+          SELECT places INTO capacity FROM Repre_Interne AS R NATURAL JOIN Spectacle AS S WHERE R.id_repre = idRepre;
           SELECT * INTO vendu FROM calc_numbre_place_dans_billet(idRepre);
           raise notice 'Taux de vente : % ', vendu/capacity;
           RETURN vendu/capacity;
@@ -44,7 +44,7 @@ DECLARE
   reserve numeric (8,2);
   capacity numeric (8,2);
 BEGIN
-	  SELECT places INTO capacity FROM Repre_Interne AS R NATURAL JOIN Spectacle AS S WHERE R.id_repre = idRepre AND R.id_spectacle = S.id_spectacle;
+	  SELECT places INTO capacity FROM Repre_Interne AS R NATURAL JOIN Spectacle AS S WHERE R.id_repre = idRepre;
 	  SELECT * INTO vendu FROM calc_numbre_place_dans_billet(idRepre);
 	  SELECT * INTO reserve FROM calc_numbre_place_dans_reserv(idRepre);
 	  raise notice 'Taux de remplissage : % ', (vendu+reserve)/capacity;
