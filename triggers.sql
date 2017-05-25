@@ -20,26 +20,40 @@ DECLARE
   placeMax integer;
   placeVentu integer;
   placeReserve integer;
+  prixAuMoment numeric(8,2);
+  existRecord Billet%ROWTYPE;
 BEGIN
   SELECT * INTO repreInfo FROM Repre_Interne WHERE id_repre = new.id_repre;
   SELECT INTO placeVentu calc_numbre_place_dans_billet(new.id_repre);
   SELECT INTO placeReserve calc_numbre_place_dans_reserv(new.id_repre); 
   SELECT places INTO placeMax FROM Spectacle WHERE id_spectacle = repreInfo.id_spectacle;
 
-  if (TG_OP = 'INSERT') then
-    if (placeMax - placeVentu - placeReserve) < new.numbre then 
+  -- For insert, the "prix_effectif" and "numbre" in the INSERT is ALWAYS the "price" total to buy "number" tickets (not the sum of all tickets sold)
+  IF (TG_OP = 'INSERT') THEN
+    IF (placeMax - placeVentu - placeReserve) < new.numbre THEN 
       raise notice 'Il n y a pas assez de place pour % billet', new.numbre;
       return null;
-    end if;
-    return new;
-  end if;
+    END IF;
+    SELECT INTO prixAuMoment get_current_ticket_price(new.id_repre, new.tarif_type);
+    IF (new.prix_effectif <> prixAuMoment) THEN 
+      raise notice 'Votre prix nest pas met a jour. Nouvel prix : % ', prixAuMoment;
+      new.prix_effectif := prixAuMoment;
+    END IF;
+    SELECT * INTO existRecord FROM Billet WHERE id_repre = new.id_repre AND tarif_type = new.tarif_type AND prix_effectif = new.prix_effectif;
+    IF (existRecord = null) THEN
+	return new;
+    ELSE
+        UPDATE Billet SET numbre = (existRecord.numbre + new.numbre) WHERE id_repre = new.id_repre AND tarif_type = new.tarif_type AND prix_effectif = new.prix_effectif;
+        return null;
+    END IF;
+  END IF;
 
   if (TG_OP = 'UPDATE') then
     if (new.numbre > old.numbre) then
       if (placeMax - placeVentu - placeReserve) < (new.numbre-old.numbre) then
         raise notice 'Il n y a pas assez de place pour % billet', new.numbre;
         return null;
-      end if;
+      end if; 
     end if;
     return new;
   end if;
@@ -61,16 +75,17 @@ BEGIN
   SELECT time INTO now FROM Today WHERE id = 0;
   if (TG_OP = 'INSERT') then
     INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-    ((select id_spectacle from Repre_Interne where id_repre = new.id_repre), 1, now, new.prix_effectif, 'Une nouvelle recette de billet');
+    ((select id_spectacle from Repre_Interne where id_repre = new.id_repre), 1, now, new.prix_effectif * new.numbre, 'Une nouvelle recette de billet');
   end if;
 
   if (TG_OP = 'UPDATE') then
     --In case of the change of id_repre by typo...
     if (new.id_repre <> old.id_repre) then
         INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-        ((SELECT id_spectacle FROM Repre_Interne WHERE id_repre = new.id_repre), 1, now, new.prix_effectif, 'Ajouter un billet avec id_repre correct'),
-	((SELECT id_spectacle FROM Repre_Interne WHERE id_repre = old.id_repre), 1, now, -old.prix_effectif, 'Enlever un billet qui as id_repre incorrect');
+        ((SELECT id_spectacle FROM Repre_Interne WHERE id_repre = new.id_repre), 1, now, new.prix_effectif * new.numbre, 'Ajouter un billet avec id_repre correct'),
+	((SELECT id_spectacle FROM Repre_Interne WHERE id_repre = old.id_repre), 1, now, -old.prix_effectif * old.numbre, 'Enlever un billet qui as id_repre incorrect');
     end if;
+    -- TODO Not sure here if we have to update the history or not when we modify the single price of the ticket...
     if (new.id_repre = old.id_repre AND new.prix_effectif <> old.prix_effectif) then
         INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
         ((select id_spectacle from Repre_Interne where id_repre = new.id_repre), 1, now, new.prix_effectif - old.prix_effectif, 'Modifier un billet');
@@ -100,7 +115,6 @@ DELETE FROM Billet WHERE id_repre = 2 AND tarif_type = 1 AND par_politique = 1;
 CREATE OR REPLACE FUNCTION on_time_change() RETURNS TRIGGER AS $$
 BEGIN
   delete from Reservation where date_delai < new.time;
-  /*SELECT into teste EXTRACT(epoch FROM (reserv.date_delai - new.time)); */
 return new;
 END;
 $$ LANGUAGE plpgsql;
