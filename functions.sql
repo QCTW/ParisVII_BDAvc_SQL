@@ -1,3 +1,27 @@
+-- Reserver un billet et returner le id de reservation
+CREATE OR REPLACE FUNCTION reserver (idRepre INTEGER, numbre INTEGER) RETURNS INTEGER AS $$
+DECLARE
+  vendu numeric (8,2);
+  reserve numeric (8,2);
+  capacity numeric (8,2);
+  now Today.time%TYPE;
+  idgenerated INTEGER;
+BEGIN
+  SELECT time INTO now FROM Today WHERE id = 0;          
+  SELECT places INTO capacity FROM Repre_Interne AS R NATURAL JOIN Spectacle AS S WHERE R.id_repre = idRepre;
+  SELECT * INTO vendu FROM calc_numbre_place_dans_billet(idRepre);
+  SELECT * INTO reserve FROM calc_numbre_place_dans_reserv(idRepre);
+  IF (capacity - (vendu+reserve) >= numbre) THEN
+    WITH ROWS AS ( INSERT INTO Reservation (id_repre, date_reserver, date_delai, numbre_reserver) 
+                          VALUES (idRepre, now, now + interval '72 hours', numbre) RETURNING id_reserve )
+    SELECT INTO idgenerated (SELECT id_reserve FROM ROWS);
+    RETURN idgenerated;
+  ELSE
+    RETURN -1;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
 -----------------------
 
 CREATE OR REPLACE FUNCTION calc_numbre_place_dans_billet (idRepre INTEGER) RETURNS INTEGER AS $$
