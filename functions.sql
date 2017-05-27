@@ -119,3 +119,44 @@ BEGIN
 END;      
 $$ LANGUAGE plpgsql;
 
+------------------------
+
+CREATE OR REPLACE FUNCTION payReservation ( myIdReserve INTEGER, numbre_tarifNormal INTEGER, numbre_tarifReduit INTEGER) RETURNS void AS $$
+DECLARE
+  reserveInfo Reservation%ROWTYPE;
+BEGIN
+  select * into reserveInfo from Reservation where id_reserve = myIdReserve;
+  
+  IF NOT FOUND then
+  raise notice 'La Reservation n existe pas';
+  return;
+  END IF;
+
+  IF (numbre_tarifReduit+numbre_tarifNormal <> reserveInfo.numbre_reserver) THEN
+  raise notice 'numbre de reserve est incorrect';
+  return;
+  END IF;
+
+  Delete from Reservation where id_reserve = myIdReserve;
+
+  IF(numbre_tarifNormal = 0) then
+  INSERT INTO Billet (id_repre, tarif_type, prix_effectif, numbre) VALUES
+  (reserveInfo.id_repre, 1, 0, numbre_tarifReduit);
+  raise notice 'acheter % billets en tarif_reduit', numbre_tarifReduit;
+  
+  ELSIF(numbre_tarifNormal = 0) then
+  INSERT INTO Billet (id_repre, tarif_type, prix_effectif, numbre) VALUES
+  (reserveInfo.id_repre, 0, 0, numbre_tarifNormal);
+  raise notice 'acheter % billets en tarif_normal', numbre_tarifNormal;
+  
+  ELSE
+  INSERT INTO Billet (id_repre, tarif_type, prix_effectif, numbre) VALUES
+  (reserveInfo.id_repre, 0, 0, numbre_tarifNormal),
+  (reserveInfo.id_repre, 1, 0, numbre_tarifReduit);
+  raise notice 'acheter % billets en tarif_normal, % billets en tarif_reduit', numbre_tarifNormal, numbre_tarifReduit;
+
+  return;
+  END IF;
+  
+END
+$$ LANGUAGE plpgsql;
