@@ -168,3 +168,45 @@ BEGIN
   
 END
 $$ LANGUAGE plpgsql;
+
+------------------------
+
+CREATE or Replace FUNCTION depense_brut_net(idSpectacle integer, searchType integer)RETURNS numeric(8,2) AS $$
+DECLARE
+  resultat numeric(8,2);
+  depenses numeric(8,2);
+  recettes numeric(8,2);  
+  BEGIN
+    --search depense
+    select sum(montant) into depenses from historique where id_spectacle = idSpectacle and type = 0;
+    --search recettes
+    select sum(montant) into recettes from historique where id_spectacle = idSpectacle and type = 1;
+    IF searchType = 0 THEN resultat = depenses;
+    ELSIF searchType = 1 THEN resultat = recettes;
+    ELSE resultat = recettes - depenses;
+    END IF;
+
+    return resultat;
+  END;
+$$ LANGUAGE plpgsql;
+
+------------------------
+
+CREATE or Replace FUNCTION search_list_caisse(searchType integer, date_From date, date_To date) RETURNS setof historique AS $$
+   
+  BEGIN
+    --search depense
+    IF searchType = 0 THEN
+    return query select * from historique where type = 0 and time >= date_From and time <= date_To;
+    --search recettes
+    ELSIF searchType = 1 THEN 
+    return query select * from historique where type = 1 and time >= date_From and time <= date_To;
+    --search all
+    ELSE
+    return query select * from historique where time >= date_From and time <= date_To;
+    END IF;
+
+  END;
+$$ LANGUAGE plpgsql;
+--use the way to call function
+--select * from search_list_caisse(3, '2017-01-01', '2017-04-13');

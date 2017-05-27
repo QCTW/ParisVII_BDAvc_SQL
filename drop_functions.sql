@@ -6,3 +6,5 @@ DROP FUNCTION get_seat_sold_percentage(integer);
 DROP FUNCTION get_seat_full_percentage(integer);
 DROP FUNCTION get_current_ticket_price(integer,integer);
 DROP FUNCTION pay_reservation(integer,integer,integer);
+DROP FUNCTION depense_brut_net(integer,integer);
+DROP FUNCTION search_list_caisse(integer,date,date);
