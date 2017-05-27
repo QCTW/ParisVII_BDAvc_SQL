@@ -1,4 +1,6 @@
 -- Drop tables
+\i drop_functions.sql
+
 DROP TABLE Today;
 DROP TABLE Subvention;
 DROP TABLE Organisme;
