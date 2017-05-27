@@ -340,11 +340,7 @@ BEGIN
 	raise notice 'Places totals : % ', placeTotal;
 
 	SELECT INTO placeVendu calc_numbre_place_dans_billet(new.id_repre);
-	raise notice 'Places vendus : % ', placeVendu;
-
 	SELECT INTO placeReserve calc_numbre_place_dans_reserv(new.id_repre);
-	raise notice 'Places reserves : % ', placeReserve;
-
 	raise notice 'Places restes : %', placeTotal - placeReserve - placeVendu - new.numbre_reserver;
 
 	if(placeTotal - placeReserve - placeVendu - new.numbre_reserver <= 0 ) then return null; end if;

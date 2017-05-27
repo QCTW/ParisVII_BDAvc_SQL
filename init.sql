@@ -78,10 +78,10 @@ CREATE TABLE IF NOT EXISTS Cout_Spectacle (
 );
 
 INSERT INTO Cout_Spectacle (id_spectacle, date_depenser, montant) VALUES
-(1, '2015-01-07', 500.01),
-(2, '2015-10-10', 1000.10),
-(2, '2016-05-15', 1500.09),
-(3, '2017-05-15', 3000.10);
+(1, ((SELECT time FROM Today WHERE id = 0) - interval '60 days'), 500.01),
+(2, (SELECT time FROM Today WHERE id = 0), 1000.10),
+(2, ((SELECT time FROM Today WHERE id = 0) - interval '48 hours'), 1500.09),
+(3, ((SELECT time FROM Today WHERE id = 0) - interval '30 days'), 3000.10);
 
 ----------------------------------------------------
 
@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS Repre_Externe (
 );
 
 INSERT INTO Repre_Externe (id_spectacle, id_compagnie_accueil, date_transac, prix, numbre_achete, prix_vendu) VALUES
-(1, 1, '2015-01-05', 700.34, 1, 700.34);
+(1, 1, (SELECT time FROM Today WHERE id = 0), 700.34, 1, 700.34);
 
 ----------------------------------------------------
 
@@ -129,9 +129,9 @@ CREATE TABLE IF NOT EXISTS Repre_Interne (
 );
 
 INSERT INTO Repre_Interne (id_spectacle, date_prevendre, date_sortir, politique) VALUES
-(1, '2015-12-10','2015-12-25', 1),
-(1, '2016-12-10','2016-12-30', 2),
-(3, '2017-04-15','2017-04-25', 3);
+(1, ((SELECT time FROM Today WHERE id = 0) - interval '30 days'),((SELECT time FROM Today WHERE id = 0) - interval '24 hours'), 1),
+(1, ((SELECT time FROM Today WHERE id = 0) - interval '15 days'),((SELECT time FROM Today WHERE id = 0) + interval '15 days'), 2),
+(3, ((SELECT time FROM Today WHERE id = 0)),((SELECT time FROM Today WHERE id = 0) + interval '30 days'), 3);
 
 /*
     INSERT INTO Repre_Interne (id_spectacle, date_prevendre, date_sortir, politique) VALUES
@@ -186,8 +186,8 @@ CREATE TABLE IF NOT EXISTS Historique (
 );
 
 INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-(1, 1, to_timestamp('14:03 13/04/2017', 'HH24:MI DD/MM/YYYY'), 10, 'Vendu par internet'),
-(1, 0, to_timestamp('07:30 14/02/2017', 'HH24:MI DD/MM/YYYY'), 500, 'Initier une spectacle'),
+(1, 1, (SELECT time FROM Today WHERE id = 0) - interval '72 hours', 10, 'Vendu par internet'),
+(1, 0, (SELECT time FROM Today WHERE id = 0), 500, 'Initier une spectacle'),
 (1, 1, (SELECT time FROM Today WHERE id=0), -2, 'Modifie par admin')
 
 /* 

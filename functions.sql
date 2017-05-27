@@ -1,19 +1,27 @@
 -- Reserver un billet et returner le id de reservation
 CREATE OR REPLACE FUNCTION reserver (idRepre INTEGER, numbre INTEGER) RETURNS INTEGER AS $$
 DECLARE
-  vendu numeric (8,2);
-  reserve numeric (8,2);
   capacity numeric (8,2);
   now Today.time%TYPE;
+  dateS Repre_Interne.date_sortir%TYPE;
+  dateP Repre_Interne.date_prevendre%TYPE;
+  dateDelai Reservation.date_delai%TYPE;
   idgenerated INTEGER;
 BEGIN
   SELECT time INTO now FROM Today WHERE id = 0;          
-  SELECT places INTO capacity FROM Repre_Interne AS R NATURAL JOIN Spectacle AS S WHERE R.id_repre = idRepre;
-  SELECT * INTO vendu FROM calc_numbre_place_dans_billet(idRepre);
-  SELECT * INTO reserve FROM calc_numbre_place_dans_reserv(idRepre);
-  -- TODO remove place check and auto calculate date_delai )
+  SELECT places, date_sortir, date_prevendre INTO capacity, dateS, dateP FROM Repre_Interne AS R NATURAL JOIN Spectacle AS S WHERE R.id_repre = idRepre;
+  IF (now > dateS) THEN
+    raise notice 'Le representation % as deja fini!', idRepre;
+  ELSIF (now < dateP) THEN
+    raise notice 'Le commerce de representation % nest pas encore commence!', idRepre;
+  END IF;
+  -- Here we fix the payment date to now+72 hours
+  dateDelai := now + interval '72 hours';
+  IF (dateDelai>dateS) THEN
+	dateDelai := dateS;
+  END IF;
   WITH ROWS AS ( INSERT INTO Reservation (id_repre, date_reserver, date_delai, numbre_reserver) 
-                          VALUES (idRepre, now, now + interval '72 hours', numbre) RETURNING id_reserve )
+                 VALUES (idRepre, now, now + interval '72 hours', numbre) RETURNING id_reserve )
   SELECT INTO idgenerated (SELECT id_reserve FROM ROWS);
   RETURN idgenerated;
 END;
