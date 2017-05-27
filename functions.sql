@@ -11,14 +11,11 @@ BEGIN
   SELECT places INTO capacity FROM Repre_Interne AS R NATURAL JOIN Spectacle AS S WHERE R.id_repre = idRepre;
   SELECT * INTO vendu FROM calc_numbre_place_dans_billet(idRepre);
   SELECT * INTO reserve FROM calc_numbre_place_dans_reserv(idRepre);
-  IF (capacity - (vendu+reserve) >= numbre) THEN
-    WITH ROWS AS ( INSERT INTO Reservation (id_repre, date_reserver, date_delai, numbre_reserver) 
+  -- TODO remove place check and auto calculate date_delai )
+  WITH ROWS AS ( INSERT INTO Reservation (id_repre, date_reserver, date_delai, numbre_reserver) 
                           VALUES (idRepre, now, now + interval '72 hours', numbre) RETURNING id_reserve )
-    SELECT INTO idgenerated (SELECT id_reserve FROM ROWS);
-    RETURN idgenerated;
-  ELSE
-    RETURN -1;
-  END IF;
+  SELECT INTO idgenerated (SELECT id_reserve FROM ROWS);
+  RETURN idgenerated;
 END;
 $$ LANGUAGE plpgsql;
 

@@ -1,16 +1,5 @@
 -- Load shared funtions
 \i functions.sql
--- Drop all used triggers for clean install
-DROP TRIGGER IF EXISTS on_billet_preprocessor ON Billet;
-DROP TRIGGER IF EXISTS on_billet_changer ON Billet;
-DROP TRIGGER IF EXISTS on_time_changer ON Today;
-DROP TRIGGER IF EXISTS cout_achete_checker ON Cout_Spectacle;
-DROP TRIGGER IF EXISTS historique_cout_modifier ON Cout_Spectacle;
-DROP TRIGGER IF EXISTS subvenir_action_checker ON Subvention;
-DROP TRIGGER IF EXISTS historique_subvenir_modifier ON Subvention;
-DROP TRIGGER IF EXISTS type_checker_prix_modifier ON Repre_Externe;
-DROP TRIGGER IF EXISTS historique_repre_externe_modifier ON Repre_Externe;
-DROP TRIGGER IF EXISTS date_places_checker ON Reservation;
 ------------------------------------------------------------
 -- pour la table Billet
 -----------------------------------------------------------
@@ -64,9 +53,6 @@ CREATE TRIGGER on_billet_preprocessor BEFORE INSERT OR UPDATE ON Billet
 FOR EACH ROW 
 EXECUTE PROCEDURE on_billet_preprocess();
 
-INSERT into Billet VALUES (1, 0, 1, 99.9, 9);
-UPDATE Billet SET numbre = 100 WHERE id_repre = 1 AND tarif_type = 0 AND par_politique = 1;
-
 ----------------------------------------------------------
 CREATE OR REPLACE FUNCTION on_billet_change() RETURNS TRIGGER AS $$
 DECLARE 
@@ -104,11 +90,6 @@ CREATE TRIGGER on_billet_changer AFTER INSERT OR UPDATE OR DELETE ON Billet
 FOR EACH ROW
 EXECUTE PROCEDURE on_billet_change();
 
--- Test
-INSERT into Billet VALUES (2, 1, 1, 111.11, 11);
-UPDATE Billet SET prix_effectif = 200 WHERE id_repre = 2 AND tarif_type = 1 AND par_politique = 1;
-DELETE FROM Billet WHERE id_repre = 2 AND tarif_type = 1 AND par_politique = 1;
-
 ------------------------------------------------------------
 -- pour la table Today 
 ------------------------------------------------------------
@@ -122,8 +103,6 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER on_time_changer AFTER UPDATE ON Today 
 FOR EACH ROW 
 EXECUTE PROCEDURE on_time_change();
-
-UPDATE Today SET time = current_timestamp WHERE id = 0;
 
 ------------------------------------------------------------
 -- pour la table Cout_spectacle
@@ -167,10 +146,6 @@ CREATE TRIGGER cout_achete_checker BEFORE INSERT OR UPDATE ON Cout_Spectacle
 FOR EACH ROW
 EXECUTE PROCEDURE check_cout_achete();
 
-INSERT INTO Cout_Spectacle (id_spectacle, date_depenser, montant) VALUES
-(3, '2015-01-10', 500.01);
-UPDATE cout_spectacle set id_spectacle = 3 where id_cout = 2;
-
 -------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION modify_cout_historique() RETURNS TRIGGER AS $$
@@ -206,12 +181,6 @@ CREATE TRIGGER historique_cout_modifier AFTER INSERT OR UPDATE OR DELETE ON Cout
 FOR EACH ROW
 EXECUTE PROCEDURE modify_cout_historique();
 
-INSERT INTO Cout_Spectacle (id_spectacle, date_depenser, montant) VALUES
-(2, '2015-12-23', 300.01);
-UPDATE Cout_Spectacle set montant = 140.01 where id_cout = 6;
-UPDATE Cout_Spectacle set id_spectacle = 2 where id_cout = 4;
-DELETE from Cout_Spectacle where id_cout = 6;
-
 -------------------------------------------------------------
 --pour la table subvention
 -------------------------------------------------------------
@@ -235,10 +204,6 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER subvenir_action_checker BEFORE INSERT OR UPDATE ON Subvention
 FOR EACH ROW
 EXECUTE PROCEDURE check_subvenir_action();
-
-INSERT INTO Subvention (id_spectacle, id_organisme, action, montant, date_subvenir) VALUES
-(1, 3, '', 220.45, '2014-10-11'),
-(2, 1, 'accueil', 100, '2016-01-11');
 
 -------------------------------------------------------------
 
@@ -277,13 +242,6 @@ CREATE TRIGGER historique_subvenir_modifier AFTER INSERT OR UPDATE OR DELETE ON 
 FOR EACH ROW
 EXECUTE PROCEDURE modify_subvenir_historique();
 
-INSERT INTO Subvention (id_spectacle, id_organisme, action, montant, date_subvenir) VALUES
-(2, 3, '', 30.54, '2016-12-23');
-UPDATE Subvention set montant = 60.42 where id_spectacle = 2 and id_organisme = 3;
-UPDATE Subvention set id_spectacle = 3, id_organisme = 1 where id_spectacle = 2 and id_organisme = 1;
-UPDATE Subvention set id_organisme = 2 where id_spectacle = 3 and id_organisme = 1;
-DELETE from Subvention where id_spectacle = 2 and id_organisme = 3;
-
 -------------------------------------------------------------
 --pour la table Repre_Externe
 -------------------------------------------------------------
@@ -309,9 +267,6 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER type_checker_prix_modifier BEFORE INSERT OR UPDATE ON Repre_Externe
 FOR EACH ROW
 EXECUTE PROCEDURE check_type_modify_prix();
-
-INSERT INTO Repre_Externe (id_spectacle, id_compagnie_accueil, date_transac, prix, numbre_achete) VALUES
-(3, 1, '2015-01-05', 100, 1);
 
 -------------------------------------------------------------
 
@@ -349,13 +304,6 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER historique_repre_externe_modifier AFTER INSERT OR UPDATE OR DELETE ON Repre_Externe 
 FOR EACH ROW
 EXECUTE PROCEDURE modify_repre_externe_historique();
-
-INSERT INTO Repre_Externe (id_spectacle, id_compagnie_accueil, date_transac, prix, numbre_achete) VALUES
-(1, 1, '2015-01-05', 500, 10);
-UPDATE Repre_Externe set id_spectacle = 3 where id_repre_ext = 3;
-UPDATE Repre_Externe set id_spectacle = 2 where id_repre_ext = 3;
-UPDATE Repre_Externe set prix = 100, numbre_achete = 5 where id_repre_ext = 3;
-DELETE from Repre_Externe where id_repre_ext = 1;
 
 -------------------------------------------------------------
 --pour la table Reservation
@@ -396,10 +344,4 @@ CREATE TRIGGER date_places_checker BEFORE INSERT OR UPDATE ON Reservation
 FOR EACH ROW
 EXECUTE PROCEDURE check_date_places();
 
-INSERT INTO Reservation (id_repre, date_reserver, date_delai, numbre_reserver) VALUES
-(3, '2017-04-10', '2017-04-18', 10);
-INSERT INTO Reservation (id_repre, date_reserver, date_delai, numbre_reserver) VALUES
-(3, '2017-04-18', '2017-04-28', 10);
-INSERT INTO Reservation (id_repre, date_reserver, date_delai, numbre_reserver) VALUES
-(3, '2017-04-18', '2017-04-20', 50);
-UPDATE Reservation set numbre_reserver = 100 where id_reserve = 1;
+
