@@ -188,7 +188,7 @@ CREATE TABLE IF NOT EXISTS Historique (
 INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
 (1, 1, (SELECT time FROM Today WHERE id = 0) - interval '72 hours', 10, 'Vendu par internet'),
 (1, 0, (SELECT time FROM Today WHERE id = 0), 500, 'Initier une spectacle'),
-(1, 1, (SELECT time FROM Today WHERE id=0), -2, 'Modifie par admin')
+(1, 1, (SELECT time FROM Today WHERE id = 0), -2, 'Modifie par admin')
 
 /* 
     pour cle etranger on pense a utiliser 

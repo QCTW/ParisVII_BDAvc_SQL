@@ -162,28 +162,31 @@ EXECUTE PROCEDURE check_cout_achete();
 -------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION modify_cout_historique() RETURNS TRIGGER AS $$
+DECLARE 
+  now Today.time%TYPE;
 BEGIN
+  SELECT time INTO now FROM Today WHERE id = 0;
   if (TG_OP = 'INSERT') then
     INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-    (new.id_spectacle, 0, new.date_depenser, new.montant, 'Ajouter nouveau cout');
+    (new.id_spectacle, 0, now, new.montant, 'Ajouter nouveau cout');
   end if;
   if (TG_OP = 'UPDATE') then
     -- In case that we have to modify id_spectacle because of typo...
     if(new.id_spectacle<>old.id_spectacle) then 
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-      (old.id_spectacle, 0, new.date_depenser, -old.montant, 'Modifier-enlever un ancien cout');
+      (old.id_spectacle, 0, now, -old.montant, 'Modifier-enlever un ancien cout');
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-      (new.id_spectacle, 0, new.date_depenser, new.montant, 'Modifier-ajouter un nouveau cout');
+      (new.id_spectacle, 0, now, new.montant, 'Modifier-ajouter un nouveau cout');
     end if;
     if(new.id_spectacle = old.id_spectacle AND new.montant <> old.montant) then
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-      (new.id_spectacle, 0, new.date_depenser, new.montant-old.montant, 'Modifier un ancien cout');
+      (new.id_spectacle, 0, now, new.montant-old.montant, 'Modifier un ancien cout');
     end if;
   end if;
 
   if (TG_OP = 'DELETE') then
     INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-    (old.id_spectacle, 0, old.date_depenser, -old.montant, 'Enlever un ancien cout');
+    (old.id_spectacle, 0, now, -old.montant, 'Enlever un ancien cout');
   end if;
 
   return new;
@@ -221,30 +224,33 @@ EXECUTE PROCEDURE check_subvenir_action();
 -------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION modify_subvenir_historique() RETURNS TRIGGER AS $$
+DECLARE 
+  now Today.time%TYPE;
 BEGIN
+  SELECT time INTO now FROM Today WHERE id = 0;
   if (TG_OP = 'INSERT') then
     INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-    (new.id_spectacle, 1, new.date_subvenir, new.montant, 'Ajouter une nouvelle subvention');
+    (new.id_spectacle, 1, now, new.montant, 'Ajouter une nouvelle subvention');
   end if;
 
   if (TG_OP = 'UPDATE') then
     -- In case that we have to modify id_spectacle because of typo...
     if(new.id_spectacle<>old.id_spectacle) then 
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-      (old.id_spectacle, 1, new.date_subvenir, -old.montant, 'Modifier-enlever une ancienne subvention');
+      (old.id_spectacle, 1, now, -old.montant, 'Modifier-enlever une ancienne subvention');
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-      (new.id_spectacle, 1, new.date_subvenir, new.montant, 'Modifier-ajouter une nouvelle subvention');
+      (new.id_spectacle, 1, now, new.montant, 'Modifier-ajouter une nouvelle subvention');
     end if;
 
     if(new.id_spectacle = old.id_spectacle AND new.montant <> old.montant) then
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-      (new.id_spectacle, 1, new.date_subvenir, new.montant-old.montant, 'Modifier une ancienne subvention');
+      (new.id_spectacle, 1, now, new.montant-old.montant, 'Modifier une ancienne subvention');
     end if;
   end if;
 
   if (TG_OP = 'DELETE') then
     INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-    (old.id_spectacle, 1, old.date_subvenir, -old.montant, 'Enlever une ancienne subvention');
+    (old.id_spectacle, 1, now, -old.montant, 'Enlever une ancienne subvention');
   end if;
 
   return new;
@@ -284,30 +290,33 @@ EXECUTE PROCEDURE check_type_modify_prix();
 -------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION modify_repre_externe_historique() RETURNS TRIGGER AS $$
+DECLARE 
+  now Today.time%TYPE;
 BEGIN
+  SELECT time INTO now FROM Today WHERE id = 0;
   if (TG_OP = 'INSERT') then
     INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-    (new.id_spectacle, 1, new.date_transac, new.prix_vendu * new.numbre_achete, 'Ajouter une nouvelle vente');
+    (new.id_spectacle, 1, now, new.prix_vendu * new.numbre_achete, 'Ajouter une nouvelle vente');
   end if;
 
   if (TG_OP = 'UPDATE') then
     -- In case that we change id_spectacle because of typo
     if(new.id_spectacle<>old.id_spectacle) then 
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-      (old.id_spectacle, 1, new.date_transac, -old.prix_vendu*old.numbre_achete, 'Modifier-enlever une ancienne vente');
+      (old.id_spectacle, 1, now, -old.prix_vendu*old.numbre_achete, 'Modifier-enlever une ancienne vente');
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-      (new.id_spectacle, 1, new.date_transac, new.prix_vendu*new.numbre_achete, 'Modifier-ajouter une nouvelle vente');
+      (new.id_spectacle, 1, now, new.prix_vendu*new.numbre_achete, 'Modifier-ajouter une nouvelle vente');
     end if;
 
     if(new.id_spectacle = old.id_spectacle AND new.numbre_achete <> old.numbre_achete) then
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-      (new.id_spectacle, 1, new.date_transac, new.prix_vendu*new.numbre_achete-old.prix_vendu*old.numbre_achete, 'Modifier une ancienne vente');
+      (new.id_spectacle, 1, now, new.prix_vendu*new.numbre_achete-old.prix_vendu*old.numbre_achete, 'Modifier une ancienne vente');
     end if;
   end if;
 
   if (TG_OP = 'DELETE') then
     INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-    (old.id_spectacle, 1, old.date_transac, -old.prix_vendu * old.numbre_achete, 'Enlever une ancienne vente');
+    (old.id_spectacle, 1, now, -old.prix_vendu * old.numbre_achete, 'Enlever une ancienne vente');
   end if;
 
   return new;
@@ -332,8 +341,12 @@ BEGIN
 	select * into ligne from Repre_Interne where id_repre = new.id_repre;
 
 	--check the date_reserver >= date_prevendre and date_delai <= date_sortir
-	if( new.date_reserver < ligne.date_prevendre ) then return null; end if;
-	if( new.date_delai > ligne.date_sortir) then return null; end if;
+	if( new.date_reserver < ligne.date_prevendre ) then 
+  raise notice 'the comerce of the show do not begin';
+  return null; end if;
+	if( new.date_delai > ligne.date_sortir) then 
+  raise notice 'you can not pay after show finish';
+  return null; end if;
 
 	--whether we have enough places reste, which include billet and other reservation
 	select places into placeTotal from Spectacle where id_spectacle = ligne.id_spectacle;
