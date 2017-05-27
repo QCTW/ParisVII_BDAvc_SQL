@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS Today (
 );
 
 INSERT INTO Today ( id, time ) VALUES 
-(0, to_timestamp('13:30 14/04/2017', 'HH24:MI DD/MM/YYYY'));
+(0, to_timestamp('11:00 15/04/2017', 'HH24:MI DD/MM/YYYY'));
 
 ----------------------------------------------------
 
@@ -156,7 +156,7 @@ CREATE TABLE IF NOT EXISTS Reservation (
 );
 
 INSERT INTO Reservation (id_repre, date_reserver, date_delai, numbre_reserver) VALUES
-(1, to_timestamp('13:30 14/04/2017', 'HH24:MI DD/MM/YYYY'), to_timestamp('13:30 14/04/2017', 'HH24:MI DD/MM/YYYY')+ interval '24 hours', 10),
+(1, to_timestamp('13:30 16/04/2017', 'HH24:MI DD/MM/YYYY'), to_timestamp('13:30 17/04/2017', 'HH24:MI DD/MM/YYYY')+ interval '24 hours', 10),
 (1, (SELECT time FROM Today WHERE id = 0) - interval '72 hours', (SELECT time FROM Today WHERE id = 0)- interval '24 hours', 5),
 (3, (SELECT time FROM Today WHERE id = 0), (SELECT time FROM Today WHERE id = 0)+ interval '72 hours', 4),
 (3, (SELECT time FROM Today WHERE id = 0) - interval '72 hours', (SELECT time FROM Today WHERE id = 0)- interval '24 hours', 3);
@@ -164,16 +164,15 @@ INSERT INTO Reservation (id_repre, date_reserver, date_delai, numbre_reserver) V
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS Billet (
-	id_repre integer references Repre_Interne,
-	tarif_type integer CHECK (tarif_type IN (0,1)), /* 0=Normal, 1=Reduit*/
-    par_politique integer CHECK (par_politique >=0),
+    id_repre integer references Repre_Interne,
+    tarif_type integer CHECK (tarif_type IN (0,1)), /* 0=Normal, 1=Reduit*/
     prix_effectif numeric (8,2),
     numbre integer NOT NULL CHECK (numbre >=0),
-	PRIMARY KEY (id_repre, tarif_type, prix_effectif, par_politique)
+	PRIMARY KEY (id_repre, tarif_type, prix_effectif)
 );
 
-INSERT INTO Billet (id_repre, tarif_type, par_politique, prix_effectif, numbre) VALUES
-(1, 0, 0, 204.45, 5);
+INSERT INTO Billet (id_repre, tarif_type, prix_effectif, numbre) VALUES
+(1, 0, 204.45, 5);
 
 ----------------------------------------------------
 
