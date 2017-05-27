@@ -129,39 +129,39 @@ $$ LANGUAGE plpgsql;
 
 ------------------------
 
-CREATE OR REPLACE FUNCTION pay_reservation ( myIdReserve INTEGER, numbre_tarifNormal INTEGER, numbre_tarifReduit INTEGER) RETURNS void AS $$
+CREATE OR REPLACE FUNCTION pay_reservation (myIdReserve INTEGER, tarifNormal INTEGER, tarifReduit INTEGER) RETURNS void AS $$
 DECLARE
   reserveInfo Reservation%ROWTYPE;
 BEGIN
   select * into reserveInfo from Reservation where id_reserve = myIdReserve;
   
   IF NOT FOUND then
-  raise notice 'La Reservation n existe pas';
+  raise notice 'La Reservation % n existe pas', myIdReserve;
   return;
   END IF;
 
-  IF (numbre_tarifReduit+numbre_tarifNormal <> reserveInfo.numbre_reserver) THEN
-  raise notice 'numbre de reserve est incorrect';
+  IF (tarifReduit + tarifNormal <> reserveInfo.numbre_reserver) THEN
+  raise notice 'Numbre de reservation % total est incorrect', (tarifReduit + tarifNormal);
   return;
   END IF;
 
   Delete from Reservation where id_reserve = myIdReserve;
 
-  IF(numbre_tarifNormal = 0) then
+  IF(tarifReduit = 0 AND tarifReduit > 0) then
   INSERT INTO Billet (id_repre, tarif_type, prix_effectif, numbre) VALUES
-  (reserveInfo.id_repre, 1, 0, numbre_tarifReduit);
-  raise notice 'acheter % billets en tarif_reduit', numbre_tarifReduit;
+  (reserveInfo.id_repre, 1, 0, tarifReduit);
+  raise notice 'Vous achetez % billets en tarif reduit', tarifReduit;
   
-  ELSIF(numbre_tarifNormal = 0) then
+  ELSIF(tarifNormal = 0 AND tarifReduit>0) then
   INSERT INTO Billet (id_repre, tarif_type, prix_effectif, numbre) VALUES
-  (reserveInfo.id_repre, 0, 0, numbre_tarifNormal);
-  raise notice 'acheter % billets en tarif_normal', numbre_tarifNormal;
+  (reserveInfo.id_repre, 0, 0, tarifNormal);
+  raise notice 'Vous achetez % billets en tarif normal', tarifNormal;
   
   ELSE
   INSERT INTO Billet (id_repre, tarif_type, prix_effectif, numbre) VALUES
-  (reserveInfo.id_repre, 0, 0, numbre_tarifNormal),
-  (reserveInfo.id_repre, 1, 0, numbre_tarifReduit);
-  raise notice 'acheter % billets en tarif_normal, % billets en tarif_reduit', numbre_tarifNormal, numbre_tarifReduit;
+  (reserveInfo.id_repre, 0, 0, tarifNormal),
+  (reserveInfo.id_repre, 1, 0, tarifReduit);
+  raise notice 'Vous achetez % billets en tarif normal, % billets en tarif reduit', tarifNormal, tarifReduit;
 
   return;
   END IF;
