@@ -129,7 +129,7 @@ $$ LANGUAGE plpgsql;
 
 ------------------------
 
-CREATE OR REPLACE FUNCTION payReservation ( myIdReserve INTEGER, numbre_tarifNormal INTEGER, numbre_tarifReduit INTEGER) RETURNS void AS $$
+CREATE OR REPLACE FUNCTION pay_reservation ( myIdReserve INTEGER, numbre_tarifNormal INTEGER, numbre_tarifReduit INTEGER) RETURNS void AS $$
 DECLARE
   reserveInfo Reservation%ROWTYPE;
 BEGIN
