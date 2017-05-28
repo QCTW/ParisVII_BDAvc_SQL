@@ -129,43 +129,50 @@ $$ LANGUAGE plpgsql;
 
 ------------------------
 
-CREATE OR REPLACE FUNCTION pay_reservation (myIdReserve INTEGER, tarifNormal INTEGER, tarifReduit INTEGER) RETURNS void AS $$
+CREATE OR REPLACE FUNCTION pay_reservation (myIdReserve INTEGER, tarifNormal INTEGER, tarifReduit INTEGER) RETURNS numeric(8,2) AS $$
 DECLARE
   reserveInfo Reservation%ROWTYPE;
+  montant numeric(8,2);
 BEGIN
   select * into reserveInfo from Reservation where id_reserve = myIdReserve;
   
   IF NOT FOUND then
   raise notice 'La Reservation % n existe pas', myIdReserve;
-  return;
+  return -1;
   END IF;
 
   IF (tarifReduit + tarifNormal <> reserveInfo.numbre_reserver) THEN
   raise notice 'Numbre de reservation % total est incorrect', (tarifReduit + tarifNormal);
-  return;
+  return -1;
   END IF;
 
   Delete from Reservation where id_reserve = myIdReserve;
 
-  IF(tarifReduit = 0 AND tarifReduit > 0) then
-  INSERT INTO Billet (id_repre, tarif_type, prix_effectif, numbre) VALUES
-  (reserveInfo.id_repre, 1, 0, tarifReduit);
-  raise notice 'Vous achetez % billets en tarif reduit', tarifReduit;
-  
-  ELSIF(tarifNormal = 0 AND tarifReduit>0) then
+  IF(tarifReduit = 0 AND tarifNormal > 0) then
+  montant = get_current_ticket_price(reserveInfo.id_repre, 0) * tarifNormal;
   INSERT INTO Billet (id_repre, tarif_type, prix_effectif, numbre) VALUES
   (reserveInfo.id_repre, 0, 0, tarifNormal);
-  raise notice 'Vous achetez % billets en tarif normal', tarifNormal;
+  raise notice 'Vous achetez % billets en tarif Normal', tarifNormal;
+  
+  ELSIF(tarifNormal = 0 AND tarifReduit > 0) then
+  montant = get_current_ticket_price(reserveInfo.id_repre, 1) * tarifReduit;
+  INSERT INTO Billet (id_repre, tarif_type, prix_effectif, numbre) VALUES
+  (reserveInfo.id_repre, 1, 0, tarifReduit);
+  raise notice 'Vous achetez % billets en tarif Reduit', tarifReduit;
   
   ELSE
+  montant = get_current_ticket_price(reserveInfo.id_repre, 0) * tarifNormal;
   INSERT INTO Billet (id_repre, tarif_type, prix_effectif, numbre) VALUES
-  (reserveInfo.id_repre, 0, 0, tarifNormal),
+  (reserveInfo.id_repre, 0, 0, tarifNormal);
+
+  montant = montant + get_current_ticket_price(reserveInfo.id_repre, 1) * tarifReduit;
+  INSERT INTO Billet (id_repre, tarif_type, prix_effectif, numbre) VALUES
   (reserveInfo.id_repre, 1, 0, tarifReduit);
   raise notice 'Vous achetez % billets en tarif normal, % billets en tarif reduit', tarifNormal, tarifReduit;
 
-  return;
-  END IF;
   
+  END IF;
+  return montant;
 END
 $$ LANGUAGE plpgsql;
 
