@@ -151,12 +151,12 @@ BEGIN
   montant = get_current_ticket_price(reserveInfo.id_repre, 0) * tarifNormal;
   INSERT INTO Billet (id_repre, tarif_type, prix_effectif, numbre) VALUES
   (reserveInfo.id_repre, 0, 0, tarifNormal);
-  raise notice 'Vous achetez % billets en tarif Normal', tarifNormal;
+  raise notice 'Vous achetez % billets (€%) en tarif normal', montant, tarifNormal;
   ELSIF(tarifNormal = 0 AND tarifReduit > 0) then
   montant = get_current_ticket_price(reserveInfo.id_repre, 1) * tarifReduit;
   INSERT INTO Billet (id_repre, tarif_type, prix_effectif, numbre) VALUES
   (reserveInfo.id_repre, 1, 0, tarifReduit);
-  raise notice 'Vous achetez % billets en tarif Reduit', tarifReduit;
+  raise notice 'Vous achetez % billets (€%) en tarif reduit', montant, tarifReduit;
   ELSE
   montant = get_current_ticket_price(reserveInfo.id_repre, 0) * tarifNormal;
   INSERT INTO Billet (id_repre, tarif_type, prix_effectif, numbre) VALUES
@@ -164,15 +164,19 @@ BEGIN
   montant = montant + get_current_ticket_price(reserveInfo.id_repre, 1) * tarifReduit;
   INSERT INTO Billet (id_repre, tarif_type, prix_effectif, numbre) VALUES
   (reserveInfo.id_repre, 1, 0, tarifReduit);
-  raise notice 'Vous achetez % billets en tarif normal, % billets en tarif reduit', tarifNormal, tarifReduit;
+  raise notice 'Vous achetez % billets en tarif normal, % billets en tarif reduit: €%)', tarifNormal, tarifReduit, montant;
   END IF;
   return montant;
 END
 $$ LANGUAGE plpgsql;
 
 ------------------------
-
-CREATE or Replace FUNCTION account_by_type(idSpectacle integer, searchType integer)RETURNS numeric(8,2) AS $$
+/*
+ searchType 0 = Cost
+ searchType 1 = Income
+ searchType 2 = Profit
+ */
+CREATE or Replace FUNCTION account (idSpectacle integer, searchType integer)RETURNS numeric(8,2) AS $$
 DECLARE
   nomspect Spectacle.nom%TYPE;
   resultat numeric(8,2);
@@ -181,7 +185,7 @@ DECLARE
 BEGIN
     select nom into nomspect from Spectacle where id_spectacle = idSpectacle;
     if NOT FOUND then
-      raise notice 'Le spectacle id % nexist pas!', idSpectacle;
+      raise notice 'Le spectacle id % n exist pas!', idSpectacle;
       return -1;
     end if;
     --search depense
@@ -190,14 +194,31 @@ BEGIN
     select COALESCE(sum(montant),0) into recettes from historique where id_spectacle = idSpectacle and type = 1;
     IF searchType = 0 THEN 
       resultat := depenses;
-      raise notice 'Les depenses pour % est % ', nomspect, resultat;
+      raise notice 'Les depenses pour % est €% ', nomspect, resultat;
     ELSIF searchType = 1 THEN 
       resultat := recettes;
-      raise notice 'Les recettes pour % est % ', nomspect, resultat;
+      raise notice 'Les recettes pour % est €% ', nomspect, resultat;
     ELSE 
       resultat := recettes - depenses;
-      raise notice 'Le profit pour % est % ', nomspect, resultat;
+      raise notice 'Le profit pour % est €% ', nomspect, resultat;
     END IF;
+    return resultat;
+END;
+$$ LANGUAGE plpgsql;
+------------------------
+
+CREATE or Replace FUNCTION account_by_repre (idRepre integer, tarifType integer) RETURNS numeric(8,2) AS $$
+DECLARE
+  nomspect Spectacle.nom%TYPE;
+  resultat numeric(8,2);
+BEGIN
+    select nom into nomspect from Spectacle AS S NATURAL JOIN Repre_interne AS R where R.id_repre = idRepre;
+    if NOT FOUND then
+      raise notice 'La representation id % n exist pas!', idRepre;
+      return -1; 
+    end if; 
+    select COALESCE(sum(prix_effectif * numbre),0) into resultat from Billet where id_repre = idRepre and tarif_type = tarifType;
+    raise notice 'Le revenu de la representation de % No.% est: €% ', nomspect, idRepre, resultat;
     return resultat;
 END;
 $$ LANGUAGE plpgsql;
@@ -209,11 +230,11 @@ DECLARE
   nomspect Spectacle.nom%TYPE;
   resultat numeric(8,2);
   depenses numeric(8,2);
-  recettes numeric(8,2);  
+  recettes numeric(8,2);
 BEGIN
     select nom into nomspect from Spectacle where id_spectacle = idSpectacle;
     if NOT FOUND then
-      raise notice 'Le spectacle id % nexist pas!', idSpectacle;
+      raise notice 'Le spectacle id % n exist pas!', idSpectacle;
       return -1;
     end if;
     --search depense
@@ -221,6 +242,7 @@ BEGIN
     --search recettes
     select COALESCE(sum(montant),0) into recettes from historique where id_spectacle = idSpectacle and type = 1 and time >= dateFrom and time <= dateTo;
     resultat := recettes - depenses;
+    raise notice 'Balance pour % est €% (€% recettes - €% depenses) ', nomspect, resultat, recettes, depenses;
     return resultat;
 END;
 $$ LANGUAGE plpgsql;
