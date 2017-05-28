@@ -1,5 +1,5 @@
 -- Reserver un billet et returner le id de reservation
-CREATE OR REPLACE FUNCTION reserver (idRepre INTEGER, numbre INTEGER) RETURNS INTEGER AS $$
+CREATE OR REPLACE FUNCTION reserver (idRepre INTEGER, nombre INTEGER) RETURNS INTEGER AS $$
 DECLARE
   capacity numeric (8,2);
   now Today.time%TYPE;
@@ -20,8 +20,8 @@ BEGIN
   IF (dateDelai>dateS) THEN
 	dateDelai := dateS;
   END IF;
-  WITH ROWS AS ( INSERT INTO Reservation (id_repre, date_reserver, date_delai, numbre_reserver) 
-                 VALUES (idRepre, now, now + interval '72 hours', numbre) RETURNING id_reserve )
+  WITH ROWS AS ( INSERT INTO Reservation (id_repre, date_reserver, date_delai, nombre_reserver) 
+                 VALUES (idRepre, now, now + interval '72 hours', nombre) RETURNING id_reserve )
   SELECT INTO idgenerated (SELECT id_reserve FROM ROWS);
   RETURN idgenerated;
 END;
@@ -29,11 +29,11 @@ $$ LANGUAGE plpgsql;
 
 -----------------------
 
-CREATE OR REPLACE FUNCTION calc_numbre_place_dans_billet (idRepre INTEGER) RETURNS INTEGER AS $$
+CREATE OR REPLACE FUNCTION calc_nombre_place_dans_billet (idRepre INTEGER) RETURNS INTEGER AS $$
 DECLARE
   placeVendu INTEGER;
 BEGIN
-  SELECT COALESCE(sum(numbre), 0) INTO placeVendu FROM Billet WHERE id_repre = idRepre;
+  SELECT COALESCE(sum(nombre), 0) INTO placeVendu FROM Billet WHERE id_repre = idRepre;
   raise notice 'Places vendus : % ', placeVendu;	
   RETURN placeVendu;
 END;
@@ -41,11 +41,11 @@ $$ LANGUAGE plpgsql;
 
 ------------------------
 
-CREATE OR REPLACE FUNCTION calc_numbre_place_dans_reserv (idRepre INTEGER) RETURNS INTEGER AS $$
+CREATE OR REPLACE FUNCTION calc_nombre_place_dans_reserv (idRepre INTEGER) RETURNS INTEGER AS $$
 DECLARE
   placeReserve INTEGER;
 BEGIN
-  SELECT COALESCE(sum(numbre_reserver), 0) INTO placeReserve FROM Reservation WHERE id_repre = idRepre;
+  SELECT COALESCE(sum(nombre_reserver), 0) INTO placeReserve FROM Reservation WHERE id_repre = idRepre;
   raise notice 'Places reserves : % ', placeReserve;
   RETURN placeReserve;
 END;
@@ -59,7 +59,7 @@ DECLARE
   capacity numeric (8,2);
 BEGIN
           SELECT places INTO capacity FROM Repre_Interne AS R NATURAL JOIN Spectacle AS S WHERE R.id_repre = idRepre;
-          SELECT * INTO vendu FROM calc_numbre_place_dans_billet(idRepre);
+          SELECT * INTO vendu FROM calc_nombre_place_dans_billet(idRepre);
           raise notice 'Taux de vente : % ', vendu/capacity;
           RETURN vendu/capacity;
 END;
@@ -74,8 +74,8 @@ DECLARE
   capacity numeric (8,2);
 BEGIN
 	  SELECT places INTO capacity FROM Repre_Interne AS R NATURAL JOIN Spectacle AS S WHERE R.id_repre = idRepre;
-	  SELECT * INTO vendu FROM calc_numbre_place_dans_billet(idRepre);
-	  SELECT * INTO reserve FROM calc_numbre_place_dans_reserv(idRepre);
+	  SELECT * INTO vendu FROM calc_nombre_place_dans_billet(idRepre);
+	  SELECT * INTO reserve FROM calc_nombre_place_dans_reserv(idRepre);
 	  raise notice 'Taux de remplissage : % ', (vendu+reserve)/capacity;
 	  RETURN (vendu+reserve)/capacity;
 END;
@@ -140,8 +140,8 @@ BEGIN
   raise notice 'La Reservation % n existe pas', myIdReserve;
   return -1;
   END IF;
-  IF (tarifReduit + tarifNormal <> reserveInfo.numbre_reserver) THEN
-  raise notice 'Numbre de reservation % total est incorrect', (tarifReduit + tarifNormal);
+  IF (tarifReduit + tarifNormal <> reserveInfo.nombre_reserver) THEN
+  raise notice 'Nombre de reservation % total est incorrect', (tarifReduit + tarifNormal);
   return -1;
   END IF;
 
@@ -149,20 +149,20 @@ BEGIN
 
   IF(tarifReduit = 0 AND tarifNormal > 0) then
   montant = get_current_ticket_price(reserveInfo.id_repre, 0) * tarifNormal;
-  INSERT INTO Billet (id_repre, tarif_type, prix_effectif, numbre) VALUES
+  INSERT INTO Billet (id_repre, tarif_type, prix_effectif, nombre) VALUES
   (reserveInfo.id_repre, 0, 0, tarifNormal);
   raise notice 'Vous achetez % billets (€%) en tarif normal', montant, tarifNormal;
   ELSIF(tarifNormal = 0 AND tarifReduit > 0) then
   montant = get_current_ticket_price(reserveInfo.id_repre, 1) * tarifReduit;
-  INSERT INTO Billet (id_repre, tarif_type, prix_effectif, numbre) VALUES
+  INSERT INTO Billet (id_repre, tarif_type, prix_effectif, nombre) VALUES
   (reserveInfo.id_repre, 1, 0, tarifReduit);
   raise notice 'Vous achetez % billets (€%) en tarif reduit', montant, tarifReduit;
   ELSE
   montant = get_current_ticket_price(reserveInfo.id_repre, 0) * tarifNormal;
-  INSERT INTO Billet (id_repre, tarif_type, prix_effectif, numbre) VALUES
+  INSERT INTO Billet (id_repre, tarif_type, prix_effectif, nombre) VALUES
   (reserveInfo.id_repre, 0, 0, tarifNormal);
   montant = montant + get_current_ticket_price(reserveInfo.id_repre, 1) * tarifReduit;
-  INSERT INTO Billet (id_repre, tarif_type, prix_effectif, numbre) VALUES
+  INSERT INTO Billet (id_repre, tarif_type, prix_effectif, nombre) VALUES
   (reserveInfo.id_repre, 1, 0, tarifReduit);
   raise notice 'Vous achetez % billets en tarif normal, % billets en tarif reduit: €%)', tarifNormal, tarifReduit, montant;
   END IF;
@@ -217,7 +217,7 @@ BEGIN
       raise notice 'La representation id % n exist pas!', idRepre;
       return -1; 
     end if; 
-    select COALESCE(sum(prix_effectif * numbre),0) into resultat from Billet where id_repre = idRepre and tarif_type = tarifType;
+    select COALESCE(sum(prix_effectif * nombre),0) into resultat from Billet where id_repre = idRepre and tarif_type = tarifType;
     raise notice 'Le revenu de la representation de % No.% est: €% ', nomspect, idRepre, resultat;
     return resultat;
 END;

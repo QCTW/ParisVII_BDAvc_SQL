@@ -15,11 +15,11 @@ DECLARE
 BEGIN
   SELECT time INTO today FROM Today WHERE id = 0;
   SELECT * INTO repreInfo FROM Repre_Interne WHERE id_repre = new.id_repre;
-  SELECT INTO placeVentu calc_numbre_place_dans_billet(new.id_repre);
-  SELECT INTO placeReserve calc_numbre_place_dans_reserv(new.id_repre); 
+  SELECT INTO placeVentu calc_nombre_place_dans_billet(new.id_repre);
+  SELECT INTO placeReserve calc_nombre_place_dans_reserv(new.id_repre); 
   SELECT places INTO placeMax FROM Spectacle WHERE id_spectacle = repreInfo.id_spectacle;
 
-  -- For insert, the "numbre" in the INSERT is ALWAYS the "number" of tickets TO BUY (not the sum of all tickets sold)
+  -- For insert, the "nombre" in the INSERT is ALWAYS the "number" of tickets TO BUY (not the sum of all tickets sold)
   IF (TG_OP = 'INSERT') THEN
     IF (today < repreInfo.date_prevendre) THEN
       raise notice 'Le commerce de representation % nest pas encore commence!', new.id_repre;
@@ -28,31 +28,31 @@ BEGIN
       raise notice 'Le representation % as deja fini!', new.id_repre;
       return null;
     END IF;
-    IF (placeMax - placeVentu - placeReserve) < new.numbre THEN 
-      raise notice 'Il n y a pas assez de place pour % billet', new.numbre;
+    IF (placeMax - placeVentu - placeReserve) < new.nombre THEN 
+      raise notice 'Il n y a pas assez de place pour % billet', new.nombre;
       return null;
     END IF;
     SELECT INTO prixAuMoment get_current_ticket_price(new.id_repre, new.tarif_type);
-    IF (new.numbre > 0 AND new.prix_effectif <> prixAuMoment) THEN 
+    IF (new.nombre > 0 AND new.prix_effectif <> prixAuMoment) THEN 
       raise notice 'Votre prix nest pas mise a jour. Nouveau prix : % ', prixAuMoment;
       new.prix_effectif := prixAuMoment;
     END IF;
     SELECT * INTO existRecord FROM Billet WHERE id_repre = new.id_repre AND tarif_type = new.tarif_type AND prix_effectif = new.prix_effectif;
     IF NOT FOUND THEN
-	if(new.numbre>0) then
-	raise notice '% billets ajouteront', new.numbre;
+	if(new.nombre>0) then
+	raise notice '% billets ajouteront', new.nombre;
 	return new;
-        elsif (new.numbre<0) then
-	raise notice 'Votre % billet (%, %, %) nexistent pas!', -(new.numbre), new.id_repre, new.tarif_type, new.prix_effectif;
+        elsif (new.nombre<0) then
+	raise notice 'Votre % billet (%, %, %) nexistent pas!', -(new.nombre), new.id_repre, new.tarif_type, new.prix_effectif;
 	return null;
 	end if;
     ELSE
-        UPDATE Billet SET numbre = (existRecord.numbre + new.numbre) 
+        UPDATE Billet SET nombre = (existRecord.nombre + new.nombre) 
 	WHERE id_repre = new.id_repre AND tarif_type = new.tarif_type AND prix_effectif = new.prix_effectif;
-	if (new.numbre>0) then 
-	  raise notice '% billets ajouteront', new.numbre;
-        elsif (new.numbre<0) then
-	  raise notice '% billets rembourseront', new.numbre;
+	if (new.nombre>0) then 
+	  raise notice '% billets ajouteront', new.nombre;
+        elsif (new.nombre<0) then
+	  raise notice '% billets rembourseront', new.nombre;
 	end if;
         return null;
     END IF;
@@ -81,13 +81,13 @@ BEGIN
   SELECT time INTO now FROM Today WHERE id = 0;
   if (TG_OP = 'INSERT') then
     INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-    ((select id_spectacle from Repre_Interne where id_repre = new.id_repre), 1, now, new.prix_effectif * new.numbre, 'Une nouvelle recette de billet');
+    ((select id_spectacle from Repre_Interne where id_repre = new.id_repre), 1, now, new.prix_effectif * new.nombre, 'Une nouvelle recette de billet');
   end if;
 
   if (TG_OP = 'UPDATE') then
-    if (new.id_repre = old.id_repre AND new.numbre <> old.numbre) then
+    if (new.id_repre = old.id_repre AND new.nombre <> old.nombre) then
         INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-        ((select id_spectacle from Repre_Interne where id_repre = new.id_repre), 1, now, (new.numbre - old.numbre) * new.prix_effectif, 'Billet vendu/rembourse');
+        ((select id_spectacle from Repre_Interne where id_repre = new.id_repre), 1, now, (new.nombre - old.nombre) * new.prix_effectif, 'Billet vendu/rembourse');
     end if;
   end if;
 
@@ -276,8 +276,8 @@ BEGIN
   end if;
 
   --if buy over 10, we give them a discount. we can define more rules.
-  if(new.numbre_achete >= 10) then new.prix_vendu = new.prix * 0.8; end if;
-  if(new.numbre_achete < 10) then new.prix_vendu = new.prix; end if;
+  if(new.nombre_achete >= 10) then new.prix_vendu = new.prix * 0.8; end if;
+  if(new.nombre_achete < 10) then new.prix_vendu = new.prix; end if;
 
   return new;
 END;
@@ -296,27 +296,27 @@ BEGIN
   SELECT time INTO now FROM Today WHERE id = 0;
   if (TG_OP = 'INSERT') then
     INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-    (new.id_spectacle, 1, now, new.prix_vendu * new.numbre_achete, 'Ajouter une nouvelle vente');
+    (new.id_spectacle, 1, now, new.prix_vendu * new.nombre_achete, 'Ajouter une nouvelle vente');
   end if;
 
   if (TG_OP = 'UPDATE') then
     -- In case that we change id_spectacle because of typo
     if(new.id_spectacle<>old.id_spectacle) then 
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-      (old.id_spectacle, 1, now, -old.prix_vendu*old.numbre_achete, 'Modifier-enlever une ancienne vente');
+      (old.id_spectacle, 1, now, -old.prix_vendu*old.nombre_achete, 'Modifier-enlever une ancienne vente');
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-      (new.id_spectacle, 1, now, new.prix_vendu*new.numbre_achete, 'Modifier-ajouter une nouvelle vente');
+      (new.id_spectacle, 1, now, new.prix_vendu*new.nombre_achete, 'Modifier-ajouter une nouvelle vente');
     end if;
 
-    if(new.id_spectacle = old.id_spectacle AND new.numbre_achete <> old.numbre_achete) then
+    if(new.id_spectacle = old.id_spectacle AND new.nombre_achete <> old.nombre_achete) then
       INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-      (new.id_spectacle, 1, now, new.prix_vendu*new.numbre_achete-old.prix_vendu*old.numbre_achete, 'Modifier une ancienne vente');
+      (new.id_spectacle, 1, now, new.prix_vendu*new.nombre_achete-old.prix_vendu*old.nombre_achete, 'Modifier une ancienne vente');
     end if;
   end if;
 
   if (TG_OP = 'DELETE') then
     INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-    (old.id_spectacle, 1, now, -old.prix_vendu * old.numbre_achete, 'Enlever une ancienne vente');
+    (old.id_spectacle, 1, now, -old.prix_vendu * old.nombre_achete, 'Enlever une ancienne vente');
   end if;
 
   return new;
@@ -352,11 +352,11 @@ BEGIN
 	select places into placeTotal from Spectacle where id_spectacle = ligne.id_spectacle;
 	raise notice 'Places totals : % ', placeTotal;
 
-	SELECT INTO placeVendu calc_numbre_place_dans_billet(new.id_repre);
-	SELECT INTO placeReserve calc_numbre_place_dans_reserv(new.id_repre);
-	raise notice 'Places restes : %', placeTotal - placeReserve - placeVendu - new.numbre_reserver;
+	SELECT INTO placeVendu calc_nombre_place_dans_billet(new.id_repre);
+	SELECT INTO placeReserve calc_nombre_place_dans_reserv(new.id_repre);
+	raise notice 'Places restes : %', placeTotal - placeReserve - placeVendu - new.nombre_reserver;
 
-	if(placeTotal - placeReserve - placeVendu - new.numbre_reserver <= 0 ) then return null; end if;
+	if(placeTotal - placeReserve - placeVendu - new.nombre_reserver <= 0 ) then return null; end if;
 
 	return new;
 END;

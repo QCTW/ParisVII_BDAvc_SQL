@@ -107,13 +107,13 @@ CREATE TABLE IF NOT EXISTS Repre_Externe (
     date_transac date NOT NULL,
     prix numeric (8,2) NOT NULL CHECK (prix > 0),
     /* Trigger pour donner une promotion si il en achete plusieurs dans un coup  */
-    numbre_achete integer NOT NULL CHECK (numbre_achete > 0), 
+    nombre_achete integer NOT NULL CHECK (nombre_achete > 0), 
     prix_vendu numeric (8,2) CHECK (prix > 0),
     /* final prix */
     PRIMARY KEY (id_repre_ext)
 );
 
-INSERT INTO Repre_Externe (id_spectacle, id_compagnie_accueil, date_transac, prix, numbre_achete, prix_vendu) VALUES
+INSERT INTO Repre_Externe (id_spectacle, id_compagnie_accueil, date_transac, prix, nombre_achete, prix_vendu) VALUES
 (1, 1, (SELECT time FROM Today WHERE id = 0), 700.34, 1, 700.34);
 
 ----------------------------------------------------
@@ -149,13 +149,13 @@ CREATE TABLE IF NOT EXISTS Reservation (
         triggers check date_reserver > date_prevendre
         triggers check date_regler < date_sortir
     */
-    numbre_reserver integer NOT NULL CHECK (numbre_reserver > 0),
+    nombre_reserver integer NOT NULL CHECK (nombre_reserver > 0),
     CHECK (date_reserver < date_delai)
     /* triggers there is enough places */
     --inner join select for getting information of spectacle.
 );
 
-INSERT INTO Reservation (id_repre, date_reserver, date_delai, numbre_reserver) VALUES
+INSERT INTO Reservation (id_repre, date_reserver, date_delai, nombre_reserver) VALUES
 (2, to_timestamp('13:30 16/04/2017', 'HH24:MI DD/MM/YYYY'), to_timestamp('13:30 17/04/2017', 'HH24:MI DD/MM/YYYY')+ interval '24 hours', 10),
 (2, (SELECT time FROM Today WHERE id = 0) - interval '72 hours', (SELECT time FROM Today WHERE id = 0)- interval '24 hours', 5),
 (3, (SELECT time FROM Today WHERE id = 0), (SELECT time FROM Today WHERE id = 0)+ interval '72 hours', 4);
@@ -166,11 +166,11 @@ CREATE TABLE IF NOT EXISTS Billet (
     id_repre integer references Repre_Interne,
     tarif_type integer CHECK (tarif_type IN (0,1)), /* 0=Normal, 1=Reduit*/
     prix_effectif numeric (8,2),
-    numbre integer NOT NULL CHECK (numbre >=0),
+    nombre integer NOT NULL CHECK (nombre >=0),
 	PRIMARY KEY (id_repre, tarif_type, prix_effectif)
 );
 
-INSERT INTO Billet (id_repre, tarif_type, prix_effectif, numbre) VALUES
+INSERT INTO Billet (id_repre, tarif_type, prix_effectif, nombre) VALUES
 (1, 0, 204.45, 5);
 
 ----------------------------------------------------
