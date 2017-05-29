@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS Today (
 );
 
 INSERT INTO Today ( id, time ) VALUES 
-(0, to_timestamp('11:00 15/04/2017', 'HH24:MI DD/MM/YYYY'));
+(0, to_timestamp('11:30 29/04/2017', 'HH24:MI DD/MM/YYYY'));
 
 ----------------------------------------------------
 
@@ -28,11 +28,6 @@ CREATE TABLE IF NOT EXISTS Spectacle (
 	PRIMARY KEY (id_spectacle)
 );
 
-INSERT INTO Spectacle (nom, type, places, tarif_normal, tarif_reduit) VALUES
-('Carmen', 0, 85, 204.45, 144.45),
-('La Dame Blanche', 0, 55, 60.05, 26.0),
-('La Peur', 1, 35, 30.9, 18.30);
-
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS Organisme (
@@ -42,11 +37,6 @@ CREATE TABLE IF NOT EXISTS Organisme (
     PRIMARY KEY (id_organisme)
 );
 
-INSERT INTO Organisme (nom, type) VALUES
-('Mairie de Paris', 'Municipalite'),
-('Ministere de la culture francais', 'Ministere de la culture'),
-('Yizhe FAN', 'Mecenat prive');
-
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS Subvention (
@@ -54,17 +44,11 @@ CREATE TABLE IF NOT EXISTS Subvention (
     id_organisme integer references Organisme, 
     action varchar(256)
     /* Trigger insert before selon type de spectacle de modifier action */
-    	CHECK (action IN ('creation','accueil')),
+    CHECK (action IN ('creation','accueil')),
     montant numeric(8,2) NOT NULL CHECK (montant > 0),
     date_subvenir date NOT NULL,
     PRIMARY key (id_spectacle,id_organisme)
 );
-
-INSERT INTO Subvention (id_spectacle, id_organisme, action, montant, date_subvenir) VALUES
-(1, 1, 'creation', 220.45, '2014-10-11'),
-(1, 2, 'creation', 120.01, '2016-01-01'),
-(2, 2, 'creation', 80, '2016-06-01'),
-(3, 3, 'accueil', 100, '2017-01-01');
 
 ----------------------------------------------------
 
@@ -77,12 +61,6 @@ CREATE TABLE IF NOT EXISTS Cout_Spectacle (
     PRIMARY KEY (id_cout)
 );
 
-INSERT INTO Cout_Spectacle (id_spectacle, date_depenser, montant) VALUES
-(1, ((SELECT time FROM Today WHERE id = 0) - interval '60 days'), 500.01),
-(2, (SELECT time FROM Today WHERE id = 0), 1000.10),
-(2, ((SELECT time FROM Today WHERE id = 0) - interval '48 hours'), 1500.09),
-(3, ((SELECT time FROM Today WHERE id = 0) - interval '30 days'), 3000.10);
-
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS Compagnie_Accueil (
@@ -93,9 +71,6 @@ CREATE TABLE IF NOT EXISTS Compagnie_Accueil (
     pays varchar(256) NOT NULL,
     PRIMARY KEY (id_compagnie_accueil)
 );
-
-INSERT INTO Compagnie_Accueil (nom, ville, departement, pays) VALUES
-('La Mer', 'Nice', 'Alpes-Maritimes', 'France');
 
 ----------------------------------------------------
 
@@ -113,9 +88,6 @@ CREATE TABLE IF NOT EXISTS Repre_Externe (
     PRIMARY KEY (id_repre_ext)
 );
 
-INSERT INTO Repre_Externe (id_spectacle, id_compagnie_accueil, date_transac, prix, nombre_achete, prix_vendu) VALUES
-(1, 1, (SELECT time FROM Today WHERE id = 0), 700.34, 1, 700.34);
-
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS Repre_Interne (
@@ -127,16 +99,6 @@ CREATE TABLE IF NOT EXISTS Repre_Interne (
     CHECK (date_sortir > date_prevendre),
     PRIMARY KEY (id_repre)
 );
-
-INSERT INTO Repre_Interne (id_spectacle, date_prevendre, date_sortir, politique) VALUES
-(1, ((SELECT time FROM Today WHERE id = 0) - interval '30 days'),((SELECT time FROM Today WHERE id = 0) - interval '24 hours'), 1),
-(1, ((SELECT time FROM Today WHERE id = 0) - interval '15 days'),((SELECT time FROM Today WHERE id = 0) + interval '15 days'), 2),
-(3, ((SELECT time FROM Today WHERE id = 0)),((SELECT time FROM Today WHERE id = 0) + interval '30 days'), 3);
-
-/*
-    INSERT INTO Repre_Interne (id_spectacle, date_prevendre, date_sortir, politique) VALUES
-    (2, '2016-02-20','2016-02-14', 2);
-*/
 
 ----------------------------------------------------
 
@@ -152,13 +114,7 @@ CREATE TABLE IF NOT EXISTS Reservation (
     nombre_reserver integer NOT NULL CHECK (nombre_reserver > 0),
     CHECK (date_reserver < date_delai)
     /* triggers there is enough places */
-    --inner join select for getting information of spectacle.
 );
-
-INSERT INTO Reservation (id_repre, date_reserver, date_delai, nombre_reserver) VALUES
-(2, to_timestamp('13:30 16/04/2017', 'HH24:MI DD/MM/YYYY'), to_timestamp('13:30 17/04/2017', 'HH24:MI DD/MM/YYYY')+ interval '24 hours', 10),
-(2, (SELECT time FROM Today WHERE id = 0) - interval '72 hours', (SELECT time FROM Today WHERE id = 0)- interval '24 hours', 5),
-(3, (SELECT time FROM Today WHERE id = 0), (SELECT time FROM Today WHERE id = 0)+ interval '72 hours', 4);
 
 ----------------------------------------------------
 
@@ -167,11 +123,8 @@ CREATE TABLE IF NOT EXISTS Billet (
     tarif_type integer CHECK (tarif_type IN (0,1)), /* 0=Normal, 1=Reduit*/
     prix_effectif numeric (8,2),
     nombre integer NOT NULL CHECK (nombre >=0),
-	PRIMARY KEY (id_repre, tarif_type, prix_effectif)
+    PRIMARY KEY (id_repre, tarif_type, prix_effectif)
 );
-
-INSERT INTO Billet (id_repre, tarif_type, prix_effectif, nombre) VALUES
-(1, 0, 204.45, 5);
 
 ----------------------------------------------------
 
@@ -183,14 +136,3 @@ CREATE TABLE IF NOT EXISTS Historique (
 	montant numeric (8,2) NOT NULL,
 	note text
 );
-
-INSERT INTO Historique (id_spectacle, type, time, montant, note) VALUES
-(1, 1, (SELECT time FROM Today WHERE id = 0) - interval '72 hours', 10, 'Vendu par internet'),
-(1, 0, (SELECT time FROM Today WHERE id = 0), 500, 'Initier une spectacle'),
-(1, 1, (SELECT time FROM Today WHERE id = 0), -2, 'Modifie par admin')
-
-/* 
-    pour cle etranger on pense a utiliser 
-    ON DELETE CASCADE 
-    ON DELETE RESTRICT
-*/
