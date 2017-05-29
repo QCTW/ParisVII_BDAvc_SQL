@@ -22,10 +22,10 @@ BEGIN
   -- For insert, the "nombre" in the INSERT is ALWAYS the "number" of tickets TO BUY (not the sum of all tickets sold)
   IF (TG_OP = 'INSERT') THEN
     IF (today < repreInfo.date_prevendre) THEN
-      raise notice 'Le commerce de representation % nest pas encore commence!', new.id_repre;
+      raise notice 'Le commerce de la representation % n est pas encore commence!', new.id_repre;
       return null;
     ELSIF (today > repreInfo.date_sortir) THEN
-      raise notice 'Le representation % as deja fini!', new.id_repre;
+      raise notice 'La representation % as deja fini!', new.id_repre;
       return null;
     END IF;
     IF (placeMax - placeVentu - placeReserve) < new.nombre THEN 
@@ -43,7 +43,7 @@ BEGIN
 	raise notice '% billets ajouteront', new.nombre;
 	return new;
         elsif (new.nombre<0) then
-	raise notice 'Votre % billet (%, %, %) nexistent pas!', -(new.nombre), new.id_repre, new.tarif_type, new.prix_effectif;
+	raise notice 'Vos % billets (%, %, %) n existent pas!', -(new.nombre), new.id_repre, new.tarif_type, new.prix_effectif;
 	return null;
 	end if;
     ELSE
@@ -61,7 +61,7 @@ BEGIN
   if (TG_OP = 'UPDATE') then
     --In case of the change of id_repre by typo...
     if (new.id_repre <> old.id_repre OR new.tarif_type <> old.tarif_type OR new.prix_effectif <> old.prix_effectif ) then
-        raise notice 'Vous ne pouviez pas faire UPDATE en Billet';
+        raise notice 'Vous ne pouvez pas faire UPDATE de Billet.';
         return null;
     end if;
     return new;
@@ -333,32 +333,34 @@ EXECUTE PROCEDURE modify_repre_externe_historique();
 
 CREATE OR REPLACE FUNCTION check_date_places() RETURNS TRIGGER AS $$
 DECLARE
-	ligne Repre_Interne%ROWTYPE;
-	placeTotal integer;
-	placeReserve integer;
-	placeVendu integer;
+  ligne Repre_Interne%ROWTYPE;
+  placeTotal integer;
+  placeReserve integer;
+  placeVendu integer;
 BEGIN
-	select * into ligne from Repre_Interne where id_repre = new.id_repre;
+  select * into ligne from Repre_Interne where id_repre = new.id_repre;
 
-	--check the date_reserver >= date_prevendre and date_delai <= date_sortir
-	if( new.date_reserver < ligne.date_prevendre ) then 
-  raise notice 'the comerce of the show do not begin';
-  return null; end if;
-	if( new.date_delai > ligne.date_sortir) then 
-  raise notice 'you can not pay after show finish';
-  return null; end if;
+  --check the date_reserver >= date_prevendre and date_delai <= date_sortir
+  if( new.date_reserver < ligne.date_prevendre ) then 
+    raise notice 'Vous ne pouvez pas faire une reservation avant %', ligne.date_prevendre;
+    return null; 
+  end if;
+  if( new.date_delai > ligne.date_sortir) then 
+    raise notice 'Vous ne pouvez pas faire une reservation quand la representation % as deja fini!', new.id_repre;
+    return null;
+  end if;
+  --whether we have enough places reste, which include billet and other reservation
+  select places into placeTotal from Spectacle where id_spectacle = ligne.id_spectacle;
+  raise notice 'Places totals : % ', placeTotal;
+  SELECT INTO placeVendu calc_nombre_place_dans_billet(new.id_repre);
+  SELECT INTO placeReserve calc_nombre_place_dans_reserv(new.id_repre);
+  raise notice 'Places restes : %', placeTotal - placeReserve - placeVendu - new.nombre_reserver;
 
-	--whether we have enough places reste, which include billet and other reservation
-	select places into placeTotal from Spectacle where id_spectacle = ligne.id_spectacle;
-	raise notice 'Places totals : % ', placeTotal;
+  if (placeTotal - placeReserve - placeVendu - new.nombre_reserver <= 0 ) then 
+    return null;
+  end if;
 
-	SELECT INTO placeVendu calc_nombre_place_dans_billet(new.id_repre);
-	SELECT INTO placeReserve calc_nombre_place_dans_reserv(new.id_repre);
-	raise notice 'Places restes : %', placeTotal - placeReserve - placeVendu - new.nombre_reserver;
-
-	if(placeTotal - placeReserve - placeVendu - new.nombre_reserver <= 0 ) then return null; end if;
-
-	return new;
+  return new;
 END;
 $$ LANGUAGE plpgsql;
 
